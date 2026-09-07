@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import ScoreDial from "@/components/ScoreDial";
 import CoverageBars from "@/components/CoverageBars";
@@ -8,6 +8,7 @@ import FindingsPanel from "@/components/FindingsPanel";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import CopyTextButton from "@/components/CopyTextButton";
 import StatusPill from "@/components/StatusPill";
+import PageLoader from "@/components/PageLoader";
 import type { CoverageMetrics, Finding } from "@/lib/types";
 import type { ReportPipeline } from "@/lib/api-types";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -78,8 +79,39 @@ export default function ReportView({
   view: ReportViewModel;
 }) {
   const [tab, setTab] = useState<Tab>("overview");
+  const [tabReady, setTabReady] = useState(true);
   const [pipelineOpen, setPipelineOpen] = useState(true);
-  const jsonText = useMemo(() => JSON.stringify(view.rawJson, null, 2), [view.rawJson]);
+  const [jsonText, setJsonText] = useState<string | null>(null);
+
+  function goToTab(next: Tab) {
+    if (next === tab) return;
+    setTab(next);
+    if (next === "overview") {
+      setTabReady(true);
+      return;
+    }
+    setTabReady(false);
+  }
+
+  useEffect(() => {
+    if (tab === "overview") return;
+    let cancelled = false;
+    let timer = 0;
+    const frame = requestAnimationFrame(() => {
+      timer = window.setTimeout(() => {
+        if (cancelled) return;
+        if (tab === "payload") {
+          setJsonText((cur) => cur ?? JSON.stringify(view.rawJson, null, 2));
+        }
+        setTabReady(true);
+      }, 280);
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [tab, view.rawJson]);
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "overview", label: "Overview" },
@@ -120,7 +152,7 @@ export default function ReportView({
         <button
           type="button"
           onClick={() => {
-            setTab("overview");
+            goToTab("overview");
             requestAnimationFrame(() => {
               document.getElementById("overview-metrics")?.scrollIntoView({ behavior: "smooth", block: "start" });
             });
@@ -141,7 +173,7 @@ export default function ReportView({
           <button
             key={t.id}
             type="button"
-            onClick={() => setTab(t.id)}
+            onClick={() => goToTab(t.id)}
             className={`${chipClass} ${
               tab === t.id ? chipActiveClass : chipIdleClass
             }`}
@@ -187,7 +219,7 @@ export default function ReportView({
                 type="button"
                 variants={reduced ? undefined : listItem}
                 whileHover={reduced ? undefined : { y: -2 }}
-                onClick={() => setTab("findings")}
+                onClick={() => goToTab("findings")}
                 className={`text-left ${cardInteractiveClass} p-6`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -200,7 +232,7 @@ export default function ReportView({
                 type="button"
                 variants={reduced ? undefined : listItem}
                 whileHover={reduced ? undefined : { y: -2 }}
-                onClick={() => setTab("findings")}
+                onClick={() => goToTab("findings")}
                 className={`text-left ${cardInteractiveClass} p-6`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -283,26 +315,36 @@ export default function ReportView({
             exit={reduced ? undefined : { opacity: 0, y: -6 }}
             transition={{ duration: reduced ? 0 : 0.25 }}
           >
-          <FindingsPanel findings={view.findings} />
+            {!tabReady ? (
+              <PageLoader label="Loading findings…" />
+            ) : (
+              <FindingsPanel findings={view.findings} />
+            )}
           </motion.section>
         )}
 
         {tab === "payload" && (
           <motion.section
             key="payload"
-            className={`${cardClass} overflow-hidden`}
+            className={!tabReady ? undefined : `${cardClass} overflow-hidden`}
             initial={reduced ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reduced ? undefined : { opacity: 0, y: -6 }}
             transition={{ duration: reduced ? 0 : 0.25 }}
           >
-          <div className="flex items-center justify-between px-5 py-2.5 border-b border-line bg-panel2/40">
-            <span className="text-xs uppercase tracking-widest text-mist">reportJson</span>
-            <CopyTextButton value={jsonText} label="Copy JSON" />
-          </div>
-          <pre className="px-5 py-4 text-[11px] font-mono text-mist overflow-x-auto max-h-[32rem] overflow-y-auto whitespace-pre-wrap leading-relaxed">
-            {jsonText}
-          </pre>
+            {!tabReady || jsonText == null ? (
+              <PageLoader label="Loading report JSON…" />
+            ) : (
+              <>
+                <div className="flex items-center justify-between px-5 py-2.5 border-b border-line bg-panel2/40">
+                  <span className="text-xs uppercase tracking-widest text-mist">reportJson</span>
+                  <CopyTextButton value={jsonText} label="Copy JSON" />
+                </div>
+                <pre className="px-5 py-4 text-[11px] font-mono text-mist overflow-x-auto max-h-[32rem] overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                  {jsonText}
+                </pre>
+              </>
+            )}
           </motion.section>
         )}
       </AnimatePresence>

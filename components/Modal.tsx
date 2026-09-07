@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 export default function Modal({
@@ -19,6 +20,11 @@ export default function Modal({
   widthClass?: string;
 }) {
   const reduced = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -34,10 +40,10 @@ export default function Modal({
     };
   }, [open, onClose]);
 
-  return (
+  const dialog = (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <motion.div
             className="absolute inset-0 bg-ink/70 backdrop-blur-sm"
             onClick={onClose}
@@ -76,4 +82,7 @@ export default function Modal({
       )}
     </AnimatePresence>
   );
+
+  if (!mounted) return null;
+  return createPortal(dialog, document.body);
 }

@@ -6,6 +6,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import Logo from "@/components/Logo";
 import InteractivePreview from "@/components/login-preview/InteractivePreview";
 import PasswordField from "@/components/PasswordField";
+import PageLoader from "@/components/PageLoader";
 import { fieldClass } from "@/lib/ui";
 
 export default function LoginPage() {
@@ -37,19 +38,32 @@ export default function LoginPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    setLoading(false);
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
+      setLoading(false);
       setError(data.error ?? "Sign in failed.");
       return;
     }
-    router.push("/");
+    const dest =
+      data.role === "admin"
+        ? "/dashboard"
+        : data.clientId
+          ? `/dashboard/client/${data.clientId}`
+          : "/";
+    router.replace(dest);
     router.refresh();
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8">
-      <div className="w-full max-w-5xl bg-panel rounded-2xl md:rounded-3xl border border-line shadow-xl shadow-black/5 dark:shadow-black/40 overflow-hidden flex flex-col md:flex-row md:min-h-[640px]">
+      <div className="relative w-full max-w-5xl bg-panel rounded-2xl md:rounded-3xl border border-line shadow-xl shadow-black/5 dark:shadow-black/40 overflow-hidden flex flex-col md:flex-row md:min-h-[640px]">
+        {loading && (
+          <div className="absolute inset-0 z-20 bg-panel/80 backdrop-blur-sm flex items-center justify-center">
+            <PageLoader
+              label={setupRequired ? "Creating your account…" : "Signing you in…"}
+            />
+          </div>
+        )}
         <div className="flex-1 flex flex-col p-8 sm:p-10 md:p-12 relative">
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-2.5">

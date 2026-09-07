@@ -235,6 +235,31 @@ export default function AdminOverview({
         </button>
       </div>
 
+      <div id="client-directory">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="font-display text-xl font-semibold">Client directory</h2>
+          <div className="flex items-center gap-2">
+            {(
+              [
+                ["all", "All"],
+                ["active", "Active"],
+                ["empty", "No projects"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setStatusFilter(id)}
+                className={`${chipClass} ${statusFilter === id ? chipActiveClass : chipIdleClass}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <ClientListPanel clients={listClients} highlightId={selectedId} />
+      </div>
+
       <div className={`${cardClass} p-5 lg:p-6`}>
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 mb-5">
           <div className="flex items-center gap-2">
@@ -388,30 +413,7 @@ export default function AdminOverview({
         </div>
       </div>
 
-      <div id="client-directory">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <h2 className="font-display text-xl font-semibold">Client directory</h2>
-          <div className="flex items-center gap-2">
-            {(
-              [
-                ["all", "All"],
-                ["active", "Active"],
-                ["empty", "No projects"],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setStatusFilter(id)}
-                className={`${chipClass} ${statusFilter === id ? chipActiveClass : chipIdleClass}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <ClientListPanel clients={listClients} highlightId={selectedId} />
-      </div>
+      
     </div>
   );
 }
@@ -452,8 +454,8 @@ function KpiCard({
 function CompactGauge({ value, label }: { value: number; label: string }) {
   const theme = useTheme();
   const c = THEME_COLORS[theme];
-  const size = 72;
-  const stroke = 8;
+  const size = 100;
+  const stroke = 4;
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(100, value)) / 100;
