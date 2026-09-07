@@ -4,6 +4,7 @@ import { apiGet, backendFetch } from "@/lib/backend";
 import { detailView } from "@/lib/report-map";
 import type { ApiProject, ApiReportDetail } from "@/lib/api-types";
 import ReportView from "@/components/ReportView";
+import { MarkWorkspaceProject } from "@/components/ClientWorkspaceShell";
 
 export default async function ReportDetailPage({
   params,
@@ -21,26 +22,30 @@ export default async function ReportDetailPage({
   const view = detailView(report);
 
   return (
-    <ReportView
-      projectName={project?.name ?? "Project"}
-      view={{
-        id: view.id,
-        reportId: view.reportId,
-        clientId: view.clientId,
-        timestamp: view.timestamp,
-        overallScore: view.overallScore,
-        coverage: view.coverage,
-        testExecution: {
-          total: view.testExecution.total,
-          passed: view.testExecution.passed,
-          failed: view.testExecution.failed,
-        },
-        findings: view.findings,
-        status: view.status,
-        pipeline: view.pipeline,
-        hasDetailed: view.hasDetailed,
-        rawJson: view.rawJson,
-      }}
-    />
+    <>
+      <MarkWorkspaceProject projectId={report.projectId} />
+      <ReportView
+        projectName={project?.name ?? "Project"}
+        view={{
+          id: view.id,
+          reportId: view.reportId,
+          clientId: view.clientId,
+          projectId: report.projectId,
+          timestamp: view.timestamp,
+          overallScore: view.overallScore,
+          coverage: view.coverage,
+          testExecution: {
+            total: view.testExecution.total,
+            passed: view.testExecution.passed,
+            failed: view.testExecution.failed,
+          },
+          findings: view.findings,
+          status: view.status,
+          pipeline: view.pipeline,
+          hasDetailed: view.hasDetailed,
+          rawJson: view.rawJson,
+        }}
+      />
+    </>
   );
 }

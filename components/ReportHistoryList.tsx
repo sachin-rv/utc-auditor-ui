@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import StatusPill from "@/components/StatusPill";
 import { chipClass, chipIdleClass, fieldInlineClass } from "@/lib/ui";
+import { clientReportPath } from "@/lib/client-routes";
 
 import type { CoverageMetrics } from "@/lib/types";
 
@@ -157,7 +158,7 @@ export default function ReportHistoryList({
             {slice.map((r) => (
               <Link
                 key={r.id}
-                href={`/dashboard/client/${clientId}/report/${r.id}`}
+                href={clientReportPath(clientId, r.id)}
                 className="flex items-center justify-between py-3 group hover:bg-panel2/40 -mx-2 px-3 rounded-xl transition-colors"
               >
                 <div className="flex items-center gap-4 min-w-0">

@@ -1,5 +1,4 @@
 import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { apiGet } from "@/lib/backend";
 import { normalizeClient, normalizeProjects } from "@/lib/api-normalize";
@@ -36,11 +35,6 @@ export default async function ClientProjectsPage({ params }: { params: { clientI
   return (
     <PageEnter>
     <div>
-      {isAdmin && (
-        <Link href="/dashboard" className="text-xs text-mist hover:text-chalk font-mono mb-4 inline-block hover:-translate-x-0.5 transition-transform">
-          ← All clients
-        </Link>
-      )}
       <div className="flex items-end justify-between gap-4 mb-8">
         <div>
           <div className="text-xs font-mono uppercase tracking-widest text-signal-pass mb-1">

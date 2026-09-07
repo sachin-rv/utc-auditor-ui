@@ -13,11 +13,13 @@ import type { ReportPipeline } from "@/lib/api-types";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import PageEnter, { listContainer, listItem } from "@/components/PageEnter";
 import { cardClass, cardInteractiveClass, chipActiveClass, chipClass, chipIdleClass } from "@/lib/ui";
+import { clientProjectPath, clientReportDetailsPath } from "@/lib/client-routes";
 
 export interface ReportViewModel {
   id: string;
   reportId: string;
   clientId: string;
+  projectId?: string;
   timestamp: string;
   overallScore: number;
   coverage: CoverageMetrics;
@@ -95,7 +97,11 @@ export default function ReportView({
     <PageEnter>
     <div>
       <Link
-        href={`/dashboard/client/${view.clientId}`}
+        href={
+          view.projectId
+            ? clientProjectPath(view.clientId, view.projectId)
+            : `/dashboard/client/${view.clientId}`
+        }
         className="text-xs text-mist hover:text-chalk font-mono mb-4 inline-block hover:translate-x-[-2px] transition-transform"
       >
         ← Project history
@@ -164,7 +170,7 @@ export default function ReportView({
             {view.hasDetailed ? (
               <motion.div variants={reduced ? undefined : listItem} whileHover={reduced ? undefined : { y: -2 }}>
                 <Link
-                  href={`/dashboard/client/${view.clientId}/report/${view.id}/details`}
+                  href={clientReportDetailsPath(view.clientId, view.id)}
                   className={`${cardInteractiveClass} p-6 flex flex-col items-center justify-center gap-2 h-full`}
                 >
                   <ScoreDial score={view.overallScore} size={172} />
@@ -224,7 +230,7 @@ export default function ReportView({
 
           {view.hasDetailed && (
             <Link
-              href={`/dashboard/client/${view.clientId}/report/${view.id}/details`}
+              href={clientReportDetailsPath(view.clientId, view.id)}
               className={`group mb-6 flex items-center justify-between ${cardInteractiveClass} px-5 py-3.5`}
             >
               <div>

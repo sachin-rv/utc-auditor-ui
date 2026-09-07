@@ -8,6 +8,8 @@ import type { ApiProject, ApiReportDetail } from "@/lib/api-types";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import AuditDetailsDashboard from "@/components/AuditDetailsDashboard";
 import PageEnter from "@/components/PageEnter";
+import { MarkWorkspaceProject } from "@/components/ClientWorkspaceShell";
+import { clientReportPath } from "@/lib/client-routes";
 
 function fmtDateTime(iso: string) {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
@@ -34,8 +36,9 @@ export default async function ReportDetailedQualityPage({
   return (
     <PageEnter>
     <div>
+      <MarkWorkspaceProject projectId={report.projectId} />
       <Link
-        href={`/dashboard/client/${params.clientId}/report/${report.id}`}
+        href={clientReportPath(params.clientId, report.id)}
         className="text-xs text-mist hover:text-chalk font-mono mb-4 inline-block hover:-translate-x-0.5 transition-transform"
       >
         ← Back to audit report

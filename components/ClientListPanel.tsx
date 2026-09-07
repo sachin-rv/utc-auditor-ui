@@ -16,7 +16,13 @@ export interface ClientRow {
   status: string;
 }
 
-export default function ClientListPanel({ clients }: { clients: ClientRow[] }) {
+export default function ClientListPanel({
+  clients,
+  highlightId,
+}: {
+  clients: ClientRow[];
+  highlightId?: string | null;
+}) {
   const [query, setQuery] = useState("");
   const reduced = useReducedMotion();
 
@@ -70,7 +76,9 @@ export default function ClientListPanel({ clients }: { clients: ClientRow[] }) {
             >
               <Link
                 href={`/dashboard/client/${c.id}`}
-                className={`group ${cardInteractiveClass} p-5 flex items-center justify-between`}
+                className={`group ${cardInteractiveClass} p-5 flex items-center justify-between ${
+                  highlightId === c.id ? "border-signal-pass/50 ring-1 ring-signal-pass/20" : ""
+                }`}
               >
                 <div className="flex items-center gap-4">
                   <div className="h-11 w-11 rounded-xl bg-panel2 border border-line flex items-center justify-center font-display font-bold text-mist group-hover:text-signal-pass group-hover:border-signal-pass/30 group-hover:scale-105 transition-all">

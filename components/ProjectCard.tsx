@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import StatusPill from "@/components/StatusPill";
 import { cardClass } from "@/lib/ui";
@@ -11,6 +12,7 @@ import ReportHistoryList, { ReportRow } from "@/components/ReportHistoryList";
 import CreateApiKeyButton from "@/components/CreateApiKeyButton";
 import CopyTextButton from "@/components/CopyTextButton";
 import type { ApiProject } from "@/lib/api-types";
+import { clientProjectPath } from "@/lib/client-routes";
 
 export default function ProjectCard({
   clientId,
@@ -42,14 +44,33 @@ export default function ProjectCard({
   return (
     <section className={`${cardClass} overflow-hidden`}>
       <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-panel2/40 gap-4">
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="text-left min-w-0 flex-1 group"
-          aria-expanded={open}
-        >
+        <div className="text-left min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="font-display font-bold text-lg group-hover:text-signal-pass transition-colors">{project.name}</h2>
+            <Link
+              href={clientProjectPath(clientId, project.id)}
+              className="font-display font-bold text-lg hover:text-signal-pass transition-colors"
+            >
+              {project.name}
+            </Link>
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              className="group"
+              aria-expanded={open}
+              aria-label={open ? "Collapse project" : "Expand project"}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className={`text-mist transition-transform ${open ? "" : "-rotate-90"}`}
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
             <span className="text-[10px] font-mono uppercase tracking-wider text-mist border border-line rounded-full px-2 py-0.5">
               {project.slug}
             </span>
@@ -58,23 +79,12 @@ export default function ProjectCard({
                 {project.auditConfig.schedule}
               </span>
             )}
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              className={`text-mist transition-transform ${open ? "" : "-rotate-90"}`}
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
           </div>
-          <div className="text-xs text-mist font-mono mt-0.5 truncate">
+          <button type="button" onClick={() => setOpen((v) => !v)} className="text-xs text-mist font-mono mt-0.5 truncate max-w-full text-left">
             {project.repositoryUrl ?? "No repository URL"}
             {project.branch ? ` · ${project.branch}` : ""}
-          </div>
-        </button>
+          </button>
+        </div>
         <div className="flex items-center gap-2.5 shrink-0">
           {latest && <StatusPill status={latest.status ?? "no_reports"} />}
           {project.repositoryUrl && <CopyTextButton value={project.repositoryUrl} label="Repo" />}
