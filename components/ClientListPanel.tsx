@@ -77,14 +77,16 @@ export default function ClientListPanel({ clients }: { clients: ClientRow[] }) {
                     {c.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <div className="font-medium">{c.name}</div>
-                    <div className="text-xs text-mist mt-0.5">
+                    <div className="font-medium text-chalk transition-colors group-hover:text-signal-pass">
+                      {c.name}
+                    </div>
+                    <div className="text-xs text-mist mt-0.5 transition-colors group-hover:text-signal-pass">
                       {c.slug} · {c.contactEmail} · {c.projectCount} project{c.projectCount === 1 ? "" : "s"}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <StatusPill status={c.status} />
+                  <StatusPill status={c.status} className="group-hover:text-signal-pass" />
                   <span className="text-mist group-hover:text-signal-pass group-hover:translate-x-0.5 inline-block transition-all">
                     →
                   </span>

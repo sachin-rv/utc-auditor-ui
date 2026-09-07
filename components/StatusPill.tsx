@@ -9,10 +9,10 @@ const STYLES: Record<string, { dot: string; text: string; label: string }> = {
   no_reports: { dot: "bg-mist", text: "text-mist", label: "No audits yet" },
 };
 
-export default function StatusPill({ status }: { status: string }) {
+export default function StatusPill({ status, className = "" }: { status: string; className?: string }) {
   const s = STYLES[status] ?? STYLES.no_reports;
   return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${s.text}`}>
+    <span className={`inline-flex items-center gap-1.5 text-xs font-medium transition-colors ${s.text} ${className}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${s.dot} animate-pulse`} />
       {s.label}
     </span>
