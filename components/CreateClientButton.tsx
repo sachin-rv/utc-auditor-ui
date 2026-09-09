@@ -88,7 +88,7 @@ export default function CreateClientButton() {
               placeholder="Enter your Organization Name"
             />
           </Field>
-          <Field label="Contact email">
+          <Field label="Contact email (Optional)">
             <input
               type="email"
               value={contactEmail}
@@ -100,7 +100,7 @@ export default function CreateClientButton() {
 
           <label className="flex items-center gap-2 text-xs text-mist pt-1">
             <input type="checkbox" checked={withUser} onChange={(e) => setWithUser(e.target.checked)} />
-            Also create the first client user
+            Also create the first client user (Optional)
           </label>
 
           {withUser && (
