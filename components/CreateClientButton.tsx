@@ -23,7 +23,7 @@ export default function CreateClientButton() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [contactEmail, setContactEmail] = useState("");
-  const [withUser, setWithUser] = useState(true);
+  const [withUser, setWithUser] = useState(false);
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [userPassword, setUserPassword] = useState("");
@@ -35,7 +35,7 @@ export default function CreateClientButton() {
     setName("");
     setSlug("");
     setContactEmail("");
-    setWithUser(true);
+    setWithUser(false);
     setUserName("");
     setUserEmail("");
     setUserPassword("");
