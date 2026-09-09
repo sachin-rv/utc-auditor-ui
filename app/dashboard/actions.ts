@@ -11,7 +11,7 @@ function fail(e: unknown, fallback: string) {
 export async function createClientAction(input: {
   name: string;
   slug: string;
-  contactEmail: string;
+  contactEmail?: string;
   user?: { email: string; password: string; name: string };
 }) {
   try {

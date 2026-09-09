@@ -47,11 +47,14 @@ export default function CreateClientButton() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    const trimmedContactEmail = contactEmail.trim();
     const result = await createClientAction({
       name,
       slug,
-      contactEmail,
-      user: withUser ? { name: userName, email: userEmail, password: userPassword } : undefined,
+      ...(trimmedContactEmail && { contactEmail: trimmedContactEmail }),
+      user: withUser
+        ? { name: userName, email: userEmail, password: userPassword }
+        : undefined,
     });
     setLoading(false);
     if (!result.ok) {
@@ -88,11 +91,10 @@ export default function CreateClientButton() {
           <Field label="Contact email">
             <input
               type="email"
-              required
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
               className={inputClass}
-              placeholder="contact@ipsy.com"
+              placeholder="Enter Your Organization's Contact Email"
             />
           </Field>
 
