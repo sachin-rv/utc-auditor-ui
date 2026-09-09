@@ -127,7 +127,7 @@ export default function CreateUserButton({
             )}
             <div>
               <label className="block text-sm font-medium text-chalk mb-1">Name</label>
-              <input required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} placeholder="Ipsy User" />
+              <input required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} placeholder="Enter User Name" />
             </div>
             <div>
               <label className="block text-sm font-medium text-chalk mb-1">Email</label>
@@ -137,7 +137,7 @@ export default function CreateUserButton({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={inputClass}
-                placeholder="user@ipsy.com"
+                placeholder="Enter User Email"
               />
             </div>
             <div>
