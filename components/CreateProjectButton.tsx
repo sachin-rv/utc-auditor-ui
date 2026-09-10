@@ -22,10 +22,15 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [repositoryUrl, setRepositoryUrl] = useState("");
-  const [branch, setBranch] = useState("main");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [description, setDescription] = useState("");
-  const [schedule, setSchedule] = useState("daily");
   const [minCoverage, setMinCoverage] = useState("80");
+
+  const [auditConfig, setAuditConfig] = useState(
+    () => [
+      { envType: "development", branch: "main", schedule: "daily", minCoverageThreshold: 80 },
+    ] as { envType: string; branch: string; schedule?: string; minCoverageThreshold?: number }[]
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -33,14 +38,47 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    // Validate auditConfig: at least one, unique envType and branch
+    if (!auditConfig || auditConfig.length === 0) {
+      setError("At least one environment/branch configuration is required.");
+      setLoading(false);
+      return;
+    }
+    const envSet = new Set<string>();
+    const branchSet = new Set<string>();
+    for (const a of auditConfig) {
+      if (!a.envType || !a.branch) {
+        setError("Each audit config must include env type and branch.");
+        setLoading(false);
+        return;
+      }
+      if (envSet.has(a.envType)) {
+        setError(`Duplicate env type: ${a.envType}`);
+        setLoading(false);
+        return;
+      }
+      if (branchSet.has(a.branch)) {
+        setError(`Duplicate branch: ${a.branch}`);
+        setLoading(false);
+        return;
+      }
+      envSet.add(a.envType);
+      branchSet.add(a.branch);
+    }
+
     const result = await createProjectAction(clientId, {
       name,
       slug,
       repositoryUrl: repositoryUrl || undefined,
-      branch: branch || undefined,
+      websiteUrl: websiteUrl || undefined,
       description: description || undefined,
-      schedule: schedule || undefined,
-      minCoverageThreshold: minCoverage ? Number(minCoverage) : undefined,
+      auditConfig: auditConfig.map((a) => ({
+        envType: a.envType,
+        branch: a.branch,
+        schedule: a.schedule || undefined,
+        minCoverageThreshold: Number(a.minCoverageThreshold ?? minCoverage ?? 80),
+      })),
     });
     setLoading(false);
     if (!result.ok) {
@@ -50,6 +88,8 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
     setOpen(false);
     setName("");
     setSlug("");
+    // reset audit config
+    setAuditConfig([{ envType: "development", branch: "main", schedule: "daily", minCoverageThreshold: 80 }]);
     router.refresh();
   }
 
@@ -97,30 +137,99 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
               className={inputClass}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-chalk mb-1.5">Branch</label>
-              <input value={branch} onChange={(e) => setBranch(e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-chalk mb-1.5">Schedule</label>
-              <select value={schedule} onChange={(e) => setSchedule(e.target.value)} className={inputClass}>
-                <option value="daily">daily</option>
-                <option value="weekly">weekly</option>
-                <option value="manual">manual</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-chalk mb-1.5">
+              Website URL
+            </label>
+            <input
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              className={inputClass}
+              placeholder="https://example.com"
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-chalk mb-1.5">Min coverage threshold</label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={minCoverage}
-              onChange={(e) => setMinCoverage(e.target.value)}
-              className={inputClass}
-            />
+            <label className="block text-sm font-medium text-chalk mb-1.5">Environments & branches</label>
+            <div className="space-y-2">
+              {auditConfig.map((entry, idx) => (
+                <div key={idx} className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                  <div className="grid grid-cols-4 gap-2">
+                    <select
+                      value={entry.envType}
+                      onChange={(e) => {
+                        const copy = [...auditConfig];
+                        copy[idx] = { ...copy[idx], envType: e.target.value };
+                        setAuditConfig(copy);
+                      }}
+                      className={inputClass}
+                    >
+                      <option value="development">development</option>
+                      <option value="qa">qa</option>
+                      <option value="staging">staging</option>
+                      <option value="production">production</option>
+                    </select>
+                    <input
+                      value={entry.branch}
+                      onChange={(e) => {
+                        const copy = [...auditConfig];
+                        copy[idx] = { ...copy[idx], branch: e.target.value };
+                        setAuditConfig(copy);
+                      }}
+                      className={inputClass}
+                      placeholder="branch"
+                    />
+                    <select
+                      value={entry.schedule}
+                      onChange={(e) => {
+                        const copy = [...auditConfig];
+                        copy[idx] = { ...copy[idx], schedule: e.target.value };
+                        setAuditConfig(copy);
+                      }}
+                      className={inputClass}
+                    >
+                      <option value="daily">daily</option>
+                      <option value="weekly">weekly</option>
+                      <option value="manual">manual</option>
+                    </select>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={String(entry.minCoverageThreshold ?? minCoverage)}
+                      onChange={(e) => {
+                        const copy = [...auditConfig];
+                        copy[idx] = { ...copy[idx], minCoverageThreshold: Number(e.target.value) };
+                        setAuditConfig(copy);
+                      }}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      className="text-xs text-red-400"
+                      onClick={() => setAuditConfig(auditConfig.filter((_, i) => i !== idx))}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setAuditConfig([
+                    ...auditConfig,
+                    { envType: "development", branch: "", schedule: "daily", minCoverageThreshold: 80 },
+                  ])
+                }
+                className="text-sm text-mist"
+              >
+                + Add environment
+              </button>
+            </div>
           </div>
           {error && <div className={errorBoxClass}>{error}</div>}
           <div className="flex justify-end gap-2 pt-2">

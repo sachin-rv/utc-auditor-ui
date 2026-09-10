@@ -185,7 +185,7 @@ export default function AdminOverview({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         <KpiCard
           icon={<Building2 size={18} />}
           label="Clients"
@@ -213,7 +213,7 @@ export default function AdminOverview({
           active={tab === "scores"}
           onClick={() => setTab((v) => (v === "scores" ? "projects" : "scores"))}
         />
-        <button
+        {/* <button
           type="button"
           onClick={() => setStatusFilter((v) => (v === "active" ? "all" : "active"))}
           className={`${cardClass} p-5 text-left hover:border-signal-pass/40 transition ${
@@ -232,7 +232,7 @@ export default function AdminOverview({
             </div>
             <CompactGauge value={passRate || avgScore} label={rangedPoints.length ? "Pass" : "Health"} />
           </div>
-        </button>
+        </button> */}
       </div>
 
       <div id="client-directory">
@@ -260,7 +260,7 @@ export default function AdminOverview({
         <ClientListPanel clients={listClients} highlightId={selectedId} />
       </div>
 
-      <div className={`${cardClass} p-5 lg:p-6`}>
+      <div className={`${cardClass} p-5 lg:p-6`} style={{display:"none"}}>
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 mb-5">
           <div className="flex items-center gap-2">
             {(

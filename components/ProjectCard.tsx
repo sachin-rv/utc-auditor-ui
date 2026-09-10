@@ -11,6 +11,7 @@ import TrendChart from "@/components/TrendChart";
 import ReportHistoryList, { ReportRow } from "@/components/ReportHistoryList";
 import CreateApiKeyButton from "@/components/CreateApiKeyButton";
 import CopyTextButton from "@/components/CopyTextButton";
+import EditProjectButton from "@/components/EditProjectButton";
 import type { ApiProject } from "@/lib/api-types";
 import { clientProjectPath } from "@/lib/client-routes";
 
@@ -87,8 +88,9 @@ export default function ProjectCard({
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
           {latest && <StatusPill status={latest.status ?? "no_reports"} />}
-          {project.repositoryUrl && <CopyTextButton value={project.repositoryUrl} label="Repo" />}
-          {isAdmin && <CreateApiKeyButton projectId={project.id} projectName={project.name} />}
+         {project.repositoryUrl && <CopyTextButton value={project.repositoryUrl} label="Repo" />}
+         {isAdmin && <CreateApiKeyButton projectId={project.id} projectName={project.name} />}
+         {isAdmin && <EditProjectButton clientId={clientId} project={project} />}
         </div>
       </div>
 

@@ -51,24 +51,35 @@ export function normalizeProject(raw: unknown): ApiProject | null {
   const r = unwrapEntity(raw, "project");
   const id = String(r.id ?? r._id ?? "");
   if (!id) return null;
-  const audit = rec(r.auditConfig);
+  const auditRaw = r.auditConfig;
+  // support legacy single-object auditConfig and newer array-of-configs
+  let auditFirst: Record<string, unknown> | undefined;
+  if (Array.isArray(auditRaw) && auditRaw.length > 0) {
+    auditFirst = rec(auditRaw[0]);
+  } else if (auditRaw && typeof auditRaw === "object") {
+    auditFirst = rec(auditRaw);
+  }
+
+  // if branch isn't separately present, try to derive from the first audit entry
+  const derivedBranch = auditFirst && auditFirst.branch ? String(auditFirst.branch) : undefined;
+
   return {
     id,
     clientId: String(r.clientId ?? r.client_id ?? ""),
     name: String(r.name ?? "Project"),
     slug: String(r.slug ?? ""),
     repositoryUrl: r.repositoryUrl ? String(r.repositoryUrl) : r.repo ? String(r.repo) : undefined,
-    branch: r.branch ? String(r.branch) : undefined,
+    websiteUrl: r.websiteUrl ? String(r.websiteUrl) : r.website ? String(r.website) : undefined,
+    branch: r.branch ? String(r.branch) : derivedBranch,
     status: String(r.status ?? "active"),
     description: r.description ? String(r.description) : undefined,
-    auditConfig:
-      r.auditConfig && typeof r.auditConfig === "object"
-        ? {
-            schedule: audit.schedule ? String(audit.schedule) : undefined,
-            minCoverageThreshold:
-              typeof audit.minCoverageThreshold === "number" ? audit.minCoverageThreshold : undefined,
-          }
-        : undefined,
+    auditConfig: auditFirst
+      ? {
+          schedule: auditFirst.schedule ? String(auditFirst.schedule) : undefined,
+          minCoverageThreshold:
+            typeof auditFirst.minCoverageThreshold === "number" ? auditFirst.minCoverageThreshold : undefined,
+        }
+      : undefined,
   };
 }
 

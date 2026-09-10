@@ -32,10 +32,10 @@ export async function createProjectAction(
     name: string;
     slug: string;
     repositoryUrl?: string;
-    branch?: string;
+    websiteUrl?: string;
     description?: string;
-    schedule?: string;
-    minCoverageThreshold?: number;
+    // auditConfig is an array of env/branch configs
+    auditConfig?: { envType: string; branch: string; schedule?: string; minCoverageThreshold?: number }[];
   }
 ) {
   try {
@@ -48,6 +48,29 @@ export async function createProjectAction(
     return { ok: true as const, data };
   } catch (e) {
     return fail(e, "Failed to create project.");
+  }
+}
+
+export async function updateProjectAction(projectId: string, input: Partial<{
+  name: string;
+  slug: string;
+  repositoryUrl?: string;
+  websiteUrl?: string;
+  description?: string;
+  status?: string;
+  auditConfig?: { envType: string; branch: string; schedule?: string; minCoverageThreshold?: number }[];
+}>) {
+  try {
+    const data = await backendFetch(`/projects/${projectId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+    // best-effort revalidation
+    revalidatePath(`/dashboard`);
+    revalidatePath(`/dashboard/client`);
+    return { ok: true as const, data };
+  } catch (e) {
+    return fail(e, "Failed to update project.");
   }
 }
 

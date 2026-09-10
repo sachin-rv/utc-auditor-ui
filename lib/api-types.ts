@@ -29,13 +29,22 @@ export interface ApiProject {
   name: string;
   slug: string;
   repositoryUrl?: string;
+  websiteUrl?: string;
   branch?: string;
   status: string;
   description?: string;
-  auditConfig?: {
-    schedule?: string;
-    minCoverageThreshold?: number;
-  };
+  // backend may return either a single auditConfig object (legacy) or an array of audit entries
+  auditConfig?:
+    | {
+        schedule?: string;
+        minCoverageThreshold?: number;
+      }
+    | {
+        envType: string;
+        branch: string;
+        schedule?: string;
+        minCoverageThreshold?: number;
+      }[];
 }
 
 export interface ReportSummary {
