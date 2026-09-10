@@ -50,6 +50,27 @@ export async function createProjectAction(
   }
 }
 
+export async function updateProjectAction(projectId: string, input: Partial<{
+  name: string;
+  repositoryUrl?: string;
+  websiteUrl?: string;
+  description?: string;
+  status?: string;
+  auditConfig?: CreateProjectInput['auditConfig'];
+}>) {
+  try {
+    const data = await backendFetch<ApiProject>(`/projects/${projectId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+    // best-effort revalidation
+    revalidatePath(`/dashboard`);
+    return { ok: true as const, data };
+  } catch (e) {
+    return fail(e, "Failed to update project.");
+  }
+}
+
 export async function createApiKeyAction(projectId: string, name: string) {
   try {
     const data = await backendFetch<ApiKeyCreated>(`/projects/${projectId}/api-keys`, {
