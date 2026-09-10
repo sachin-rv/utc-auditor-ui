@@ -21,7 +21,6 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [slugTouched, setSlugTouched] = useState(false);
   const [repositoryUrl, setRepositoryUrl] = useState("");
   const [branch, setBranch] = useState("main");
   const [description, setDescription] = useState("");
@@ -51,7 +50,6 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
     setOpen(false);
     setName("");
     setSlug("");
-    setSlugTouched(false);
     router.refresh();
   }
 
@@ -72,22 +70,10 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
-                if (!slugTouched) setSlug(slugify(e.target.value));
+                setSlug(slugify(e.target.value));
               }}
               className={inputClass}
               placeholder="Subscription Service"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-chalk mb-1.5">Slug</label>
-            <input
-              required
-              value={slug}
-              onChange={(e) => {
-                setSlugTouched(true);
-                setSlug(e.target.value);
-              }}
-              className={inputClass}
             />
           </div>
           <div>
