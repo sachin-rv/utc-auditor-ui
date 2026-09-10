@@ -77,8 +77,25 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-chalk mb-1.5">Repository URL</label>
-            <input value={repositoryUrl} onChange={(e) => setRepositoryUrl(e.target.value)} className={inputClass} />
+            <label className="block text-sm font-medium text-chalk mb-1.5">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className={inputClass}
+              rows={2}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-chalk mb-1.5">
+              Repository URL
+            </label>
+            <input
+              value={repositoryUrl}
+              onChange={(e) => setRepositoryUrl(e.target.value)}
+              className={inputClass}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -104,10 +121,6 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
               onChange={(e) => setMinCoverage(e.target.value)}
               className={inputClass}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-chalk mb-1.5">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} rows={2} />
           </div>
           {error && <div className={errorBoxClass}>{error}</div>}
           <div className="flex justify-end gap-2 pt-2">
