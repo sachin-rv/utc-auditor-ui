@@ -1,4 +1,12 @@
-import type { ApiClient, ApiProject, ApiReportDetail, ApiReportListItem, ApiReportsPage } from "./api-types";
+import type {
+  ApiClient,
+  ApiProject,
+  ApiReportDetail,
+  ApiReportListItem,
+  ApiReportsPage,
+  AuditEnvironmentType,
+  AuditSchedule,
+} from "./api-types";
 
 export function rec(v: unknown): Record<string, unknown> {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
@@ -47,28 +55,58 @@ export function normalizeClients(raw: unknown): ApiClient[] {
     .filter((c): c is ApiClient => Boolean(c));
 }
 
+function normalizeAuditConfig(value: unknown): ApiProject["auditConfig"] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        const audit = rec(item);
+
+        const envType = String(audit.envType ?? "");
+        const branch = String(audit.branch ?? "").trim();
+
+        if (!envType || !branch) {
+          return null;
+        }
+
+        return {
+          envType: envType as AuditEnvironmentType,
+          branch,
+          schedule: String(audit.schedule ?? "daily") as AuditSchedule,
+          minCoverageThreshold:
+            typeof audit.minCoverageThreshold === "number"
+              ? audit.minCoverageThreshold
+              : 80,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  }
+
+  return undefined;
+}
+
 export function normalizeProject(raw: unknown): ApiProject | null {
   const r = unwrapEntity(raw, "project");
   const id = String(r.id ?? r._id ?? "");
-  if (!id) return null;
-  const audit = rec(r.auditConfig);
+
+  if (!id) {
+    return null;
+  }
+
   return {
     id,
     clientId: String(r.clientId ?? r.client_id ?? ""),
     name: String(r.name ?? "Project"),
     slug: String(r.slug ?? ""),
-    repositoryUrl: r.repositoryUrl ? String(r.repositoryUrl) : r.repo ? String(r.repo) : undefined,
+    repositoryUrl: r.repositoryUrl
+      ? String(r.repositoryUrl)
+      : r.repo
+        ? String(r.repo)
+        : undefined,
+    websiteUrl: r.websiteUrl ? String(r.websiteUrl) : undefined,
     branch: r.branch ? String(r.branch) : undefined,
     status: String(r.status ?? "active"),
     description: r.description ? String(r.description) : undefined,
-    auditConfig:
-      r.auditConfig && typeof r.auditConfig === "object"
-        ? {
-            schedule: audit.schedule ? String(audit.schedule) : undefined,
-            minCoverageThreshold:
-              typeof audit.minCoverageThreshold === "number" ? audit.minCoverageThreshold : undefined,
-          }
-        : undefined,
+    auditConfig: normalizeAuditConfig(r.auditConfig),
   };
 }
 

@@ -2,7 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { backendFetch, BackendError } from "@/lib/backend";
-import type { ApiClient, ApiKeyCreated, ApiProject, AuthUser, CreateUserInput } from "@/lib/api-types";
+import type {
+  ApiClient,
+  ApiKeyCreated,
+  ApiProject,
+  AuthUser,
+  CreateProjectInput,
+  CreateUserInput,
+} from "@/lib/api-types";
 
 function fail(e: unknown, fallback: string) {
   return { ok: false as const, error: e instanceof BackendError ? e.message : fallback };
@@ -28,15 +35,7 @@ export async function createClientAction(input: {
 
 export async function createProjectAction(
   clientId: string,
-  input: {
-    name: string;
-    slug: string;
-    repositoryUrl?: string;
-    branch?: string;
-    description?: string;
-    schedule?: string;
-    minCoverageThreshold?: number;
-  }
+  input: CreateProjectInput,
 ) {
   try {
     const data = await backendFetch<ApiProject>(`/clients/${clientId}/projects`, {

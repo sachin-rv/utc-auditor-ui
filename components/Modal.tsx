@@ -53,7 +53,7 @@ export default function Modal({
             transition={{ duration: reduced ? 0 : 0.2 }}
           />
           <motion.div
-            className={`relative w-full ${widthClass} min-w-0 bg-panel border border-line rounded-2xl md:rounded-3xl shadow-xl shadow-black/5 dark:shadow-black/40 max-h-[85vh] overflow-y-auto overflow-x-hidden`}
+            className={`relative w-full ${widthClass} min-w-0 bg-panel border border-line rounded-2xl md:rounded-3xl shadow-xl shadow-black/5 dark:shadow-black/40 max-h-[85vh] overflow-y-auto overflow-x-hidden scrollbar-hidden`}
             initial={reduced ? false : { opacity: 0, y: 16, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduced ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.98 }}

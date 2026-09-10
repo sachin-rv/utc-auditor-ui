@@ -23,19 +23,41 @@ export interface ApiClient {
   projectCount?: number;
 }
 
+export type AuditEnvironmentType =
+  | "development"
+  | "qa"
+  | "staging"
+  | "production";
+
+export type AuditSchedule = "daily" | "weekly" | "manual";
+
+export interface AuditEnvironment {
+  envType: AuditEnvironmentType;
+  branch: string;
+  schedule: AuditSchedule;
+  minCoverageThreshold: number;
+}
+
+export interface CreateProjectInput {
+  name: string;
+  slug: string;
+  repositoryUrl?: string;
+  websiteUrl?: string;
+  description?: string;
+  auditConfig: AuditEnvironment[];
+}
+
 export interface ApiProject {
   id: string;
   clientId: string;
   name: string;
   slug: string;
   repositoryUrl?: string;
+  websiteUrl?: string;
   branch?: string;
   status: string;
   description?: string;
-  auditConfig?: {
-    schedule?: string;
-    minCoverageThreshold?: number;
-  };
+  auditConfig?: AuditEnvironment[];
 }
 
 export interface ReportSummary {

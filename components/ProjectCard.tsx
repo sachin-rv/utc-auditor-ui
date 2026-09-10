@@ -74,9 +74,9 @@ export default function ProjectCard({
             <span className="text-[10px] font-mono uppercase tracking-wider text-mist border border-line rounded-full px-2 py-0.5">
               {project.slug}
             </span>
-            {project.auditConfig?.schedule && (
+            {project.auditConfig?.[0]?.schedule && (
               <span className="text-[10px] font-mono uppercase tracking-wider text-mist border border-line rounded-full px-2 py-0.5">
-                {project.auditConfig.schedule}
+                {project.auditConfig[0].schedule}
               </span>
             )}
           </div>
