@@ -15,6 +15,16 @@ import EditProjectButton from "@/components/EditProjectButton";
 import type { ApiProject } from "@/lib/api-types";
 import { clientProjectPath } from "@/lib/client-routes";
 
+function envLabel(envType: string) {
+  const labels: Record<string, string> = {
+    development: "Dev",
+    qa: "QA",
+    staging: "Staging",
+    production: "Prod",
+  };
+  return labels[envType] ?? envType;
+}
+
 export default function ProjectCard({
   clientId,
   project,
@@ -75,15 +85,19 @@ export default function ProjectCard({
             <span className="text-[10px] font-mono uppercase tracking-wider text-mist border border-line rounded-full px-2 py-0.5">
               {project.slug}
             </span>
-            {project.auditConfig?.[0]?.schedule && (
-              <span className="text-[10px] font-mono uppercase tracking-wider text-mist border border-line rounded-full px-2 py-0.5">
-                {project.auditConfig[0].schedule}
+            {project.auditConfig?.map((cfg, i) => (
+              <span
+                key={`${cfg.envType}-${cfg.branch}-${i}`}
+                className="text-[10px] font-mono uppercase tracking-wider text-mist border border-line rounded-full px-2 py-0.5"
+                title={`Coverage ≥ ${cfg.minCoverageThreshold}%`}
+              >
+                {envLabel(cfg.envType)} · {cfg.branch} · {cfg.schedule}
               </span>
-            )}
+            ))}
           </div>
           <button type="button" onClick={() => setOpen((v) => !v)} className="text-xs text-mist font-mono mt-0.5 truncate max-w-full text-left">
             {project.repositoryUrl ?? "No repository URL"}
-            {project.branch ? ` · ${project.branch}` : ""}
+            {project.websiteUrl ? ` · ${project.websiteUrl}` : ""}
           </button>
         </div>
         <div className="flex items-center gap-2.5 shrink-0">

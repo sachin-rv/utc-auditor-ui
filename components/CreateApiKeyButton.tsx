@@ -2,24 +2,36 @@
 
 import { useState } from "react";
 import Modal from "@/components/Modal";
-import { createApiKeyAction } from "@/app/dashboard/actions";
+import ApiKeyReveal from "@/components/ApiKeyReveal";
+import { createApiKeyAction, regenerateApiKeyAction } from "@/app/dashboard/actions";
 import { btnGhostClass, btnPrimaryClass, btnSecondaryClass, errorBoxClass, fieldClass } from "@/lib/ui";
 
-const inputClass = fieldClass;
+type Mode = "regenerate" | "additional";
 
 export default function CreateApiKeyButton({ projectId, projectName }: { projectId: string; projectName: string }) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(`CI — ${projectName}`);
+  const [mode, setMode] = useState<Mode>("regenerate");
+  const [name, setName] = useState(`${projectName} CI Key`);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState<{ plainKey: string; message: string } | null>(null);
-  const [copied, setCopied] = useState(false);
+
+  const isRotate = mode === "regenerate";
+
+  function reset() {
+    setMode("regenerate");
+    setName(`${projectName} CI Key`);
+    setError(null);
+    setCreated(null);
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const result = await createApiKeyAction(projectId, name);
+    const result = isRotate
+      ? await regenerateApiKeyAction(projectId, name)
+      : await createApiKeyAction(projectId, name);
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
@@ -28,59 +40,79 @@ export default function CreateApiKeyButton({ projectId, projectName }: { project
     setCreated({ plainKey: result.data.plainKey, message: result.data.message });
   }
 
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(created?.plainKey ?? "");
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    } catch {
-      /* ignore */
-    }
-  }
-
   function close() {
     setOpen(false);
-    setCreated(null);
-    setError(null);
-    setCopied(false);
+    reset();
   }
 
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        type="button"
+        onClick={() => {
+          reset();
+          setOpen(true);
+        }}
         className={btnGhostClass}
       >
-        Add API key
+        Rotate API key
       </button>
-      <Modal open={open} onClose={close} title="Add API key" widthClass="max-w-md">
+      <Modal
+        open={open}
+        onClose={close}
+        title={isRotate ? "Rotate API key" : "Add additional API key"}
+        subtitle={
+          isRotate
+            ? "Deactivates existing keys for this project and issues a new one."
+            : "Creates another active key without rotating the current one."
+        }
+        widthClass="max-w-md"
+      >
         {created ? (
-          <div className="space-y-3">
-            <p className="text-sm text-signal-warn">{created.message}</p>
-            <div className="bg-panel2 border border-line rounded-xl px-3 py-2 font-mono text-xs break-all">{created.plainKey}</div>
-            <div className="flex justify-end gap-2">
-              <button onClick={copy} className={btnSecondaryClass}>
-                {copied ? "Copied" : "Copy key"}
-              </button>
-              <button onClick={close} className={btnPrimaryClass}>
-                Done
-              </button>
-            </div>
-          </div>
+          <ApiKeyReveal
+            plainKey={created.plainKey}
+            message={created.message}
+            onDone={close}
+          />
         ) : (
           <form onSubmit={onSubmit} className="space-y-3">
+            <p className="text-sm text-mist">
+              {isRotate
+                ? "Update CI secrets immediately — old keys stop working after rotation."
+                : "Prefer rotate unless you need a second key (for example a backup pipeline)."}
+            </p>
             <div>
-              <label className="block text-sm font-medium text-chalk mb-1.5">Key name</label>
-              <input required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+              <label className="block text-sm font-medium text-chalk mb-1.5">
+                Key name {isRotate ? "(optional)" : ""}
+              </label>
+              <input
+                required={!isRotate}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={fieldClass}
+                placeholder={`${projectName} CI Key`}
+              />
             </div>
             {error && <div className={errorBoxClass}>{error}</div>}
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={close} className={btnSecondaryClass}>
-                Cancel
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(isRotate ? "additional" : "regenerate");
+                  setError(null);
+                }}
+                className="text-xs text-mist hover:text-chalk underline-offset-2 hover:underline"
+              >
+                {isRotate ? "Create additional key instead" : "Rotate existing key instead"}
               </button>
-              <button type="submit" disabled={loading} className={btnPrimaryClass}>
-                {loading ? "Generating…" : "Generate key"}
-              </button>
+              <div className="flex gap-2">
+                <button type="button" onClick={close} className={btnSecondaryClass}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={loading} className={btnPrimaryClass}>
+                  {loading ? "Generating…" : isRotate ? "Rotate key" : "Generate key"}
+                </button>
+              </div>
             </div>
           </form>
         )}

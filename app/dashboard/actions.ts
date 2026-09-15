@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { backendFetch, BackendError } from "@/lib/backend";
+import { normalizeCreatedProject, normalizeProject } from "@/lib/api-normalize";
 import type {
   ApiClient,
   ApiKeyCreated,
@@ -38,10 +39,14 @@ export async function createProjectAction(
   input: CreateProjectInput,
 ) {
   try {
-    const data = await backendFetch<ApiProject>(`/clients/${clientId}/projects`, {
+    const raw = await backendFetch<ApiProject>(`/clients/${clientId}/projects`, {
       method: "POST",
       body: JSON.stringify(input),
     });
+    const data = normalizeCreatedProject(raw);
+    if (!data) {
+      return { ok: false as const, error: "Project was created but the response could not be read." };
+    }
     revalidatePath(`/dashboard/client/${clientId}`);
     revalidatePath("/dashboard");
     return { ok: true as const, data };
@@ -59,15 +64,36 @@ export async function updateProjectAction(projectId: string, input: Partial<{
   auditConfig?: CreateProjectInput['auditConfig'];
 }>) {
   try {
-    const data = await backendFetch<ApiProject>(`/projects/${projectId}`, {
+    const raw = await backendFetch<ApiProject>(`/projects/${projectId}`, {
       method: "PATCH",
       body: JSON.stringify(input),
     });
-    // best-effort revalidation
-    revalidatePath(`/dashboard`);
+    const data = normalizeProject(raw);
+    if (!data) {
+      return { ok: false as const, error: "Project was updated but the response could not be read." };
+    }
+    revalidatePath("/dashboard");
+    if (data.clientId) revalidatePath(`/dashboard/client/${data.clientId}`);
     return { ok: true as const, data };
   } catch (e) {
     return fail(e, "Failed to update project.");
+  }
+}
+
+export async function deleteProjectAction(projectId: string) {
+  try {
+    const raw = await backendFetch<unknown>(`/projects/${projectId}`, {
+      method: "DELETE",
+    });
+    const data = normalizeProject(raw);
+    if (!data) {
+      return { ok: false as const, error: "Project was deactivated but the response could not be read." };
+    }
+    revalidatePath("/dashboard");
+    if (data.clientId) revalidatePath(`/dashboard/client/${data.clientId}`);
+    return { ok: true as const, data };
+  } catch (e) {
+    return fail(e, "Failed to deactivate project.");
   }
 }
 
@@ -80,6 +106,19 @@ export async function createApiKeyAction(projectId: string, name: string) {
     return { ok: true as const, data };
   } catch (e) {
     return fail(e, "Failed to create API key.");
+  }
+}
+
+export async function regenerateApiKeyAction(projectId: string, name?: string) {
+  try {
+    const body = name?.trim() ? { name: name.trim() } : {};
+    const data = await backendFetch<ApiKeyCreated>(`/projects/${projectId}/api-keys/regenerate`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    return { ok: true as const, data };
+  } catch (e) {
+    return fail(e, "Failed to rotate API key.");
   }
 }
 

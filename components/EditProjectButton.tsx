@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/Modal";
-import { updateProjectAction } from "@/app/dashboard/actions";
+import { deleteProjectAction, updateProjectAction } from "@/app/dashboard/actions";
 import { btnPrimaryClass, btnSecondaryClass, errorBoxClass, fieldClass } from "@/lib/ui";
 import type {
   ApiProject,
@@ -11,6 +11,7 @@ import type {
   AuditEnvironmentType,
   AuditSchedule,
 } from "@/lib/api-types";
+import { clientHomePath } from "@/lib/client-routes";
 
 const inputClass = fieldClass;
 
@@ -98,6 +99,8 @@ export default function EditProjectButton({ clientId, project }: { clientId: str
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [nextRowId, setNextRowId] = useState(rows.length + 1);
 
   useEffect(() => {
@@ -188,6 +191,21 @@ export default function EditProjectButton({ clientId, project }: { clientId: str
     router.refresh();
   }
 
+  async function onDeactivate() {
+    setApiError(null);
+    setDeactivating(true);
+    const result = await deleteProjectAction(project.id);
+    setDeactivating(false);
+    if (!result.ok) {
+      setApiError(result.error);
+      setConfirmDeactivate(false);
+      return;
+    }
+    setOpen(false);
+    router.push(clientHomePath(clientId));
+    router.refresh();
+  }
+
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={btnSecondaryClass}>
@@ -266,9 +284,43 @@ export default function EditProjectButton({ clientId, project }: { clientId: str
 
           {apiError && (<div className={errorBoxClass} role="alert">{apiError}</div>)}
 
-          <div className="flex justify-end gap-2 border-t border-line pt-4">
-            <button type="button" onClick={() => setOpen(false)} disabled={loading} className={btnSecondaryClass}>Cancel</button>
-            <button type="submit" disabled={loading} className={btnPrimaryClass}>{loading ? "Saving changes..." : "Save changes"}</button>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
+            {confirmDeactivate ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs text-signal-fail max-w-xs">
+                  This sets the project inactive and deactivates all API keys. Reports are kept.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeactivate(false)}
+                  disabled={deactivating}
+                  className={btnSecondaryClass}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={onDeactivate}
+                  disabled={deactivating || loading}
+                  className={`${btnSecondaryClass} border-signal-fail/40 text-signal-fail hover:border-signal-fail hover:text-signal-fail`}
+                >
+                  {deactivating ? "Deactivating…" : "Confirm deactivate"}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDeactivate(true)}
+                disabled={loading}
+                className={`${btnSecondaryClass} border-signal-fail/30 text-signal-fail hover:border-signal-fail`}
+              >
+                Deactivate project
+              </button>
+            )}
+            <div className="flex justify-end gap-2 ml-auto">
+              <button type="button" onClick={() => setOpen(false)} disabled={loading || deactivating} className={btnSecondaryClass}>Cancel</button>
+              <button type="submit" disabled={loading || deactivating} className={btnPrimaryClass}>{loading ? "Saving changes..." : "Save changes"}</button>
+            </div>
           </div>
         </form>
       </Modal>

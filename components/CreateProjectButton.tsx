@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/Modal";
+import ApiKeyReveal from "@/components/ApiKeyReveal";
 import { createProjectAction } from "@/app/dashboard/actions";
 import { btnPrimaryClass, btnSecondaryClass, errorBoxClass, fieldClass } from "@/lib/ui";
 
@@ -77,10 +78,15 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
   const [repositoryUrl, setRepositoryUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [apiKeyName, setApiKeyName] = useState("");
   const [rows, setRows] = useState<EnvironmentRow[]>([createInitialRow()]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [createdKey, setCreatedKey] = useState<{
+    projectId: string;
+    plainKey: string;
+    message: string;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [nextRowId, setNextRowId] = useState(2);
 
@@ -105,15 +111,20 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
     setRepositoryUrl("");
     setWebsiteUrl("");
     setDescription("");
+    setApiKeyName("");
     setRows([createInitialRow()]);
     setErrors({});
     setApiError(null);
-    setSuccess(false);
+    setCreatedKey(null);
     setNextRowId(2);
   }
 
   function closeModal() {
     if (loading) return;
+    if (createdKey) {
+      finishCreate(createdKey.projectId);
+      return;
+    }
     reset();
     setOpen(false);
   }
@@ -249,7 +260,6 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setApiError(null);
-    setSuccess(false);
 
     if (!validate()) {
       return;
@@ -269,6 +279,9 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
       ...(description.trim() && {
         description: description.trim(),
       }),
+      ...(apiKeyName.trim() && {
+        apiKeyName: apiKeyName.trim(),
+      }),
       auditConfig: rows.map(({ id: _id, ...row }) => ({
         envType: row.envType,
         branch: row.branch.trim(),
@@ -286,11 +299,23 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
       return;
     }
 
-    setSuccess(true);
-    setOpen(false);
-    reset();
+    if (result.data.apiKey?.plainKey) {
+      setCreatedKey({
+        projectId: result.data.id,
+        plainKey: result.data.apiKey.plainKey,
+        message: result.data.apiKey.message,
+      });
+      return;
+    }
 
-    router.push(clientProjectPath(clientId, result.data.id));
+    finishCreate(result.data.id);
+  }
+
+  function finishCreate(projectId: string) {
+    const id = projectId;
+    reset();
+    setOpen(false);
+    router.push(clientProjectPath(clientId, id));
     router.refresh();
   }
 
@@ -307,10 +332,22 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
       <Modal
         open={open}
         onClose={closeModal}
-        title="Add project"
-        subtitle="Configure the environments that UTC Auditor should monitor."
+        title={createdKey ? "Save your CI API key" : "Add project"}
+        subtitle={
+          createdKey
+            ? "A CI key was created with this project. Copy it now — it will not be shown again."
+            : "Configure the environments that UTC Auditor should monitor."
+        }
         widthClass="max-w-4xl"
       >
+        {createdKey ? (
+          <ApiKeyReveal
+            plainKey={createdKey.plainKey}
+            message={createdKey.message}
+            doneLabel="Continue to project"
+            onDone={() => finishCreate(createdKey.projectId)}
+          />
+        ) : (
         <form onSubmit={onSubmit} noValidate className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="project-name" label="Project name" error={errors.name}>
@@ -388,6 +425,20 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
               className={fieldClass}
               rows={3}
               placeholder="Project description"
+            />
+          </Field>
+
+          <Field
+            id="api-key-name"
+            label="CI API key name"
+            helper="A key is created automatically with the project. Defaults to “{project name} CI Key”."
+          >
+            <input
+              id="api-key-name"
+              value={apiKeyName}
+              onChange={(event) => setApiKeyName(event.target.value)}
+              className={fieldClass}
+              placeholder="GitHub Actions — Project Name"
             />
           </Field>
 
@@ -557,15 +608,6 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
             </div>
           )}
 
-          {success && (
-            <div
-              className="rounded-xl border border-signal-pass/20 bg-signal-pass/10 px-3 py-2 text-sm text-signal-pass"
-              role="status"
-            >
-              Project created successfully.
-            </div>
-          )}
-
           <div className="flex justify-end gap-2 border-t border-line pt-4">
             <button
               type="button"
@@ -585,6 +627,7 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
             </button>
           </div>
         </form>
+        )}
       </Modal>
     </>
   );

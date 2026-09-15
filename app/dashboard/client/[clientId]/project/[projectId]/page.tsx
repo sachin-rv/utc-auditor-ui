@@ -43,7 +43,9 @@ export default async function ClientProjectPage({
           <h1 className="font-display text-3xl font-bold">{project.name}</h1>
           <div className="text-xs text-mist font-mono mt-1">
             {project.slug}
-            {project.branch ? ` · ${project.branch}` : ""}
+            {project.auditConfig?.length
+              ? ` · ${project.auditConfig.map((c) => `${c.envType}:${c.branch}`).join(", ")}`
+              : ""}
             {item ? ` · ${item.total} report${item.total === 1 ? "" : "s"}` : ""}
           </div>
         </div>

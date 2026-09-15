@@ -1,11 +1,13 @@
 import type {
   ApiClient,
+  ApiKeyCreated,
   ApiProject,
   ApiReportDetail,
   ApiReportListItem,
   ApiReportsPage,
   AuditEnvironmentType,
   AuditSchedule,
+  CreatedProject,
 } from "./api-types";
 
 export function rec(v: unknown): Record<string, unknown> {
@@ -114,6 +116,28 @@ export function normalizeProjects(raw: unknown): ApiProject[] {
   return asArray(raw, ["projects", "items", "data", "results"])
     .map(normalizeProject)
     .filter((p): p is ApiProject => Boolean(p));
+}
+
+export function normalizeApiKey(raw: unknown): ApiKeyCreated | null {
+  const r = rec(raw);
+  const plainKey = String(r.plainKey ?? "").trim();
+  if (!plainKey) return null;
+  return {
+    id: String(r.id ?? r._id ?? ""),
+    projectId: String(r.projectId ?? ""),
+    name: String(r.name ?? ""),
+    keyPrefix: String(r.keyPrefix ?? ""),
+    plainKey,
+    message: String(r.message ?? "Save this key now — it will not be shown again"),
+  };
+}
+
+export function normalizeCreatedProject(raw: unknown): CreatedProject | null {
+  const project = normalizeProject(raw);
+  if (!project) return null;
+  const r = rec(raw);
+  const apiKey = normalizeApiKey(r.apiKey);
+  return apiKey ? { ...project, apiKey } : project;
 }
 
 export function normalizeReportListItem(raw: unknown): ApiReportListItem | null {

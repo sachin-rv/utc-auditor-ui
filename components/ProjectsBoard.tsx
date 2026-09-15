@@ -43,7 +43,12 @@ export default function ProjectsBoard({
         p.name.toLowerCase().includes(q) ||
         p.slug.toLowerCase().includes(q) ||
         (p.repositoryUrl ?? "").toLowerCase().includes(q) ||
-        (p.branch ?? "").toLowerCase().includes(q);
+        (p.websiteUrl ?? "").toLowerCase().includes(q) ||
+        (p.auditConfig ?? []).some(
+          (cfg) =>
+            cfg.branch.toLowerCase().includes(q) ||
+            cfg.envType.toLowerCase().includes(q),
+        );
       if (!matchesQuery) return false;
       const s = latestStatus(item);
       if (status === "empty") return item.reports.length === 0;

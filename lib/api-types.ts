@@ -44,6 +44,7 @@ export interface CreateProjectInput {
   repositoryUrl?: string;
   websiteUrl?: string;
   description?: string;
+  apiKeyName?: string;
   auditConfig: AuditEnvironment[];
 }
 
@@ -111,6 +112,10 @@ export interface ApiKeyCreated {
   keyPrefix: string;
   plainKey: string;
   message: string;
+}
+
+export interface CreatedProject extends ApiProject {
+  apiKey?: ApiKeyCreated;
 }
 
 export interface CreateUserInput {
