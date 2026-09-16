@@ -6,6 +6,7 @@ import CoverageBars from "@/components/CoverageBars";
 import FindingsPanel from "@/components/FindingsPanel";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import CopyTextButton from "@/components/CopyTextButton";
+import JsonTree from "@/components/JsonTree";
 import StatusPill from "@/components/StatusPill";
 import PageLoader from "@/components/PageLoader";
 import type { ReportRow } from "@/components/ReportHistoryList";
@@ -330,17 +331,16 @@ export default function ReportView({
                     <MetaRow label="Started by" value={view.pipeline?.triggeredBy ?? "—"} />
                     <MetaRow label="Source" value={view.pipeline?.provider ?? "—"} />
                   </dl>
-                  {jsonText ? (
-                    <div className="border border-line rounded-xl overflow-hidden">
+                  <div className="border border-line rounded-xl overflow-hidden">
                       <div className="flex items-center justify-between px-3 py-2 border-b border-line bg-panel2/40">
                         <span className="text-[11px] text-mist">Raw report (support use)</span>
-                        <CopyTextButton value={jsonText} label="Copy" />
+                        <CopyTextButton
+                          value={jsonText ?? JSON.stringify(view.rawJson, null, 2)}
+                          label="Copy"
+                        />
                       </div>
-                      <pre className="px-3 py-3 text-[11px] font-mono text-mist overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap leading-relaxed">
-                        {jsonText}
-                      </pre>
+                      <JsonTree value={view.rawJson} />
                     </div>
-                  ) : null}
                 </div>
               )}
             </div>
