@@ -1,3 +1,6 @@
+import { humanizeTechnicalText } from "./business-copy";
+import { displayQualityScore, firstPositive, gradeFromScore } from "./display-score";
+
 export type IssueSeverity = "error" | "warning" | "info";
 export type Tone = "pass" | "warn" | "fail" | "neutral";
 
@@ -186,7 +189,7 @@ function asIssue(row: Record<string, unknown>): StaticIssue {
     line: typeof row.line === "number" ? row.line : null,
     rule: str(row.rule),
     strategy: str(row.strategy || row.category),
-    message: str(row.message),
+    message: humanizeTechnicalText(str(row.message), str(row.file)),
     severity: sev === "error" || sev === "warning" ? sev : "info",
     category,
   };
@@ -281,7 +284,7 @@ export function parseUserReport(json: Record<string, unknown> | undefined | null
     return {
       strategy: str(row.strategy),
       title: str(row.title),
-      blurb: str(row.blurb),
+      blurb: humanizeTechnicalText(str(row.blurb)),
       errors: num(row.errors),
       warnings: num(row.warnings),
       infos: num(row.infos),
@@ -301,8 +304,8 @@ export function parseUserReport(json: Record<string, unknown> | undefined | null
       kind: str(row.kind),
       priority: str(row.priority),
       tag: str(row.tag),
-      why: str(row.why),
-      suggest: str(row.suggest),
+      why: humanizeTechnicalText(str(row.why), source),
+      suggest: humanizeTechnicalText(str(row.suggest), source),
       exports: Array.isArray(row.exports) ? row.exports.map(String) : [],
       coverageLines: typeof coverageLines === "number" ? coverageLines : null,
       matchedTests: Array.isArray(row.matchedTests) ? row.matchedTests.map(String) : [],
@@ -314,19 +317,43 @@ export function parseUserReport(json: Record<string, unknown> | undefined | null
     return { category: str(row.category), count: num(row.count) };
   });
 
+  const runTotal = num(run.numTotalTests);
+  const runPassed = num(run.numPassedTests);
+  const runFailed = num(run.numFailedTests);
+  const coverageTotals = {
+    statements: avgMetric(coverage, "statements"),
+    branches: avgMetric(coverage, "branches"),
+    functions: avgMetric(coverage, "functions"),
+    lines: avgMetric(coverage, "lines"),
+  };
+  const completenessScoreRaw = num(completeness.score);
+  const cmsScoreRaw = num(readiness.score);
+  const passRate = runTotal > 0 ? (runPassed / runTotal) * 100 : 0;
+  const qualityScore = displayQualityScore({
+    qualityScore: firstPositive(num(quality.score)),
+    passRate,
+    coverage: coverageTotals.lines,
+    completeness: completenessScoreRaw,
+    cmsReadiness: cmsScoreRaw,
+    totalTests: runTotal,
+  });
+  const qualityGrade = firstPositive(num(quality.score)) && str(quality.grade)
+    ? str(quality.grade)
+    : gradeFromScore(qualityScore);
+
   return {
     quality: {
-      score: num(quality.score),
-      grade: str(quality.grade),
-      label: str(quality.label),
-      summary: str(quality.summary),
+      score: qualityScore,
+      grade: qualityGrade,
+      label: str(quality.label) || (qualityGrade === "A" || qualityGrade === "B" ? "Strong" : "Needs attention"),
+      summary: humanizeTechnicalText(str(quality.summary)),
       byStrategy,
     },
     cms: {
-      score: num(readiness.score),
-      grade: str(readiness.grade),
+      score: firstPositive(cmsScoreRaw) ?? 1,
+      grade: str(readiness.grade) || gradeFromScore(firstPositive(cmsScoreRaw) ?? 1),
       label: str(readiness.label),
-      summary: str(readiness.summary),
+      summary: humanizeTechnicalText(str(readiness.summary)),
       fromCms: str(fromCms.displayName, "source CMS"),
       toCms: str(toCms.displayName, "target CMS"),
       stats: {
@@ -340,10 +367,10 @@ export function parseUserReport(json: Record<string, unknown> | undefined | null
       issues: cmsIssues,
     },
     completeness: {
-      score: num(completeness.score),
-      grade: str(completeness.grade),
+      score: firstPositive(completenessScoreRaw) ?? 1,
+      grade: str(completeness.grade) || gradeFromScore(firstPositive(completenessScoreRaw) ?? 1),
       label: str(completeness.label),
-      summary: str(completeness.summary),
+      summary: humanizeTechnicalText(str(completeness.summary)),
       stats: {
         sourcesScanned: num(compStats.sourcesScanned),
         withTests: num(compStats.withTests),
@@ -356,10 +383,10 @@ export function parseUserReport(json: Record<string, unknown> | undefined | null
       recommendations,
     },
     run: {
-      success: typeof run.success === "boolean" ? Boolean(run.success) : num(run.numFailedTests) === 0,
-      total: num(run.numTotalTests),
-      passed: num(run.numPassedTests),
-      failed: num(run.numFailedTests),
+      success: typeof run.success === "boolean" ? Boolean(run.success) : runFailed === 0,
+      total: runTotal,
+      passed: runPassed,
+      failed: runFailed,
       pending: num(run.numPendingTests),
       todo: num(run.numTodoTests),
       failedCases,
@@ -368,12 +395,7 @@ export function parseUserReport(json: Record<string, unknown> | undefined | null
     },
     staticIssues,
     coverage,
-    coverageTotals: {
-      statements: avgMetric(coverage, "statements"),
-      branches: avgMetric(coverage, "branches"),
-      functions: avgMetric(coverage, "functions"),
-      lines: avgMetric(coverage, "lines"),
-    },
+    coverageTotals,
   };
 }
 

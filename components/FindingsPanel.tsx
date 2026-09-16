@@ -5,6 +5,7 @@ import SeverityBadge from "@/components/SeverityBadge";
 import Modal from "@/components/Modal";
 import type { Finding, Severity } from "@/lib/types";
 import { motion, useReducedMotion } from "framer-motion";
+import { humanizeFileLabel } from "@/lib/business-copy";
 import {
   btnGhostClass,
   cardClass,
@@ -61,9 +62,9 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
   }
 
   async function copyFinding(f: Finding) {
-    const text = `[${f.severity.toUpperCase()}] ${f.ruleId} — ${f.category}\n${f.detail}${
-      f.file ? `\nFile: ${f.file}` : ""
-    }\nRecommendation: ${f.recommendation}`;
+    const text = `${f.title}\n${f.detail}${
+      f.recommendation ? `\nWhat to do: ${f.recommendation}` : ""
+    }`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -76,7 +77,7 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
   if (findings.length === 0) {
     return (
       <div className={`${emptyStateClass} text-signal-pass`}>
-        No rule violations detected in this audit.
+        No issues that need attention were found in this run.
       </div>
     );
   }
@@ -155,11 +156,15 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
                       >
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-mono text-[11px] text-mist">{f.ruleId}</span>
+                            <span className="text-sm font-medium">{f.title}</span>
                             <SeverityBadge severity={f.severity} />
                           </div>
-                          <div className="text-sm">{f.detail || f.title}</div>
-                          {f.file && <div className="font-mono text-xs text-mist mt-1">{f.file}</div>}
+                          <div className="text-sm text-mist">{f.detail || f.title}</div>
+                          {f.file && (
+                            <div className="text-xs text-mist mt-1">
+                              Area: {humanizeFileLabel(f.file)}
+                            </div>
+                          )}
                           {f.recommendation ? (
                             <div className="text-xs text-signal-info mt-1.5">→ {f.recommendation}</div>
                           ) : null}
@@ -174,18 +179,17 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
         </motion.div>
       )}
 
-      <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.ruleId} widthClass="max-w-lg">
+      <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.title} widthClass="max-w-lg">
         {selected && (
           <div>
             <div className="flex items-center gap-2 mb-3">
               <SeverityBadge severity={selected.severity} />
               <span className="text-xs text-mist uppercase tracking-wider">{selected.category}</span>
-              <span className="text-[10px] font-mono text-mist ml-auto">rule v{selected.ruleVersion}</span>
             </div>
             <div className="text-sm mb-3">{selected.detail || selected.title}</div>
             {selected.file && (
-              <div className="font-mono text-xs text-mist bg-panel2 border border-line rounded-xl px-3 py-2 mb-3">
-                {selected.file}
+              <div className="text-xs text-mist bg-panel2 border border-line rounded-xl px-3 py-2 mb-3">
+                Area: {humanizeFileLabel(selected.file)}
               </div>
             )}
             {selected.recommendation ? (

@@ -1,6 +1,8 @@
 import type { CoverageMetrics, Finding } from "./types";
 import type { ApiReportDetail, ApiReportListItem } from "./api-types";
 import { parseUserReport, shortPath } from "./user-report";
+import { businessFindingTitle, humanizeCategory, humanizeTechnicalText } from "./business-copy";
+import { displayPercent, displayQualityScore, firstPositive, gradeFromScore } from "./display-score";
 
 function rec(v: unknown): Record<string, unknown> {
   return v && typeof v === "object" ? (v as Record<string, unknown>) : {};
@@ -86,6 +88,11 @@ function pushFinding(
     recommendation: String(row.recommendation ?? row.suggestion ?? row.suggest ?? ""),
     file: file ? (line != null ? `${shortPath(file)}:${line}` : shortPath(file)) : undefined,
   });
+  const last = out[out.length - 1];
+  last.title = businessFindingTitle(last.title, last.detail, file);
+  last.detail = humanizeTechnicalText(last.detail, file);
+  last.recommendation = last.recommendation ? humanizeTechnicalText(last.recommendation, file) : "";
+  last.category = humanizeCategory(last.category);
 }
 
 export function findingsFromJson(reportJson: Record<string, unknown> | undefined): Finding[] {
@@ -129,10 +136,18 @@ export function listRowFromApi(r: ApiReportListItem) {
   const json = r.reportJson ?? {};
   const user = parseUserReport(json);
   const coverage = coverageFromJson(json, s.coveragePercent ?? user?.coverageTotals.lines);
-  const overallScore = Math.round(s.auditScore ?? user?.quality.score ?? 0);
   const passed = s.passedTests ?? user?.run.passed ?? 0;
   const total = s.totalTests ?? user?.run.total ?? 0;
   const failed = s.failedTests ?? user?.run.failed ?? Math.max(0, total - passed);
+  const passRate = total > 0 ? (passed / total) * 100 : 0;
+  const overallScore = displayQualityScore({
+    qualityScore: firstPositive(s.auditScore, user?.quality.score),
+    passRate,
+    coverage: coverage.lines,
+    completeness: user?.completeness.score,
+    cmsReadiness: user?.cms.score,
+    totalTests: total,
+  });
   const findingsCount = findingsFromJson(json).length || user?.staticIssues.length || 0;
   const status = s.status
     ? mapStatus(s.status)
@@ -143,6 +158,11 @@ export function listRowFromApi(r: ApiReportListItem) {
         : user || overallScore
           ? "success"
           : "no_reports";
+  const libraryGrade = user?.quality.grade;
+  const qualityGrade =
+    firstPositive(s.auditScore, user?.quality.score) && libraryGrade
+      ? libraryGrade
+      : gradeFromScore(overallScore);
   return {
     id: r.id,
     timestamp: r.generatedAt,
@@ -152,10 +172,13 @@ export function listRowFromApi(r: ApiReportListItem) {
     total,
     failed,
     coverage,
-    coveragePercent: s.coveragePercent ?? coverage.lines,
+    coveragePercent: firstPositive(s.coveragePercent, coverage.lines) ?? displayPercent(coverage.lines),
     status,
-    qualityGrade: user?.quality.grade,
-    completenessScore: user?.completeness.score,
+    qualityGrade,
+    completenessScore: user?.completeness.score
+      ? displayPercent(user.completeness.score)
+      : undefined,
+    cmsReadiness: user?.cms.score ? displayPercent(user.cms.score) : undefined,
     findingsCount,
   };
 }
@@ -165,18 +188,49 @@ export function detailView(report: ApiReportDetail) {
   const json = report.reportJson ?? {};
   const user = parseUserReport(json);
   const findings = findingsFromJson(json);
+  const coverage = coverageFromJson(json, s.coveragePercent ?? user?.coverageTotals.lines);
+  const total = s.totalTests ?? user?.run.total ?? 0;
+  const passed = s.passedTests ?? user?.run.passed ?? 0;
+  const failed = s.failedTests ?? user?.run.failed ?? 0;
+  const passRate = total > 0 ? (passed / total) * 100 : 0;
+  const overallScore = displayQualityScore({
+    qualityScore: firstPositive(s.auditScore, user?.quality.score),
+    passRate,
+    coverage: coverage.lines,
+    completeness: user?.completeness.score,
+    cmsReadiness: user?.cms.score,
+    totalTests: total,
+  });
+  const libraryGrade = user?.quality.grade;
+  const grade =
+    firstPositive(s.auditScore, user?.quality.score) && libraryGrade
+      ? libraryGrade
+      : gradeFromScore(overallScore);
+  const topRisks = (user?.quality.byStrategy ?? [])
+    .slice()
+    .sort((a, b) => b.errors * 2 + b.warnings - (a.errors * 2 + a.warnings))
+    .filter((item) => item.total > 0)
+    .slice(0, 4)
+    .map((item) => ({
+      title: item.title,
+      detail: item.blurb,
+      count: item.total,
+    }));
   return {
     id: report.id,
     reportId: report.reportId,
     clientId: report.clientId,
     projectId: report.projectId,
     timestamp: report.generatedAt,
-    overallScore: Math.round(s.auditScore ?? user?.quality.score ?? 0),
-    coverage: coverageFromJson(json, s.coveragePercent ?? user?.coverageTotals.lines),
+    overallScore,
+    grade,
+    cmsCoverage: displayPercent(user?.completeness.score ?? coverage.lines),
+    cmsReadiness: displayPercent(user?.cms.score ?? 100),
+    coverage,
     testExecution: {
-      total: s.totalTests ?? user?.run.total ?? 0,
-      passed: s.passedTests ?? user?.run.passed ?? 0,
-      failed: s.failedTests ?? user?.run.failed ?? 0,
+      total,
+      passed,
+      failed,
       skipped: 0,
       pending: user?.run.pending ?? 0,
       durationMs: 0,
@@ -186,5 +240,6 @@ export function detailView(report: ApiReportDetail) {
     pipeline: report.pipeline,
     hasDetailed: Boolean(user),
     rawJson: json,
+    topRisks,
   };
 }

@@ -1,20 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import ScoreDial from "@/components/ScoreDial";
 import CoverageBars from "@/components/CoverageBars";
 import FindingsPanel from "@/components/FindingsPanel";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import CopyTextButton from "@/components/CopyTextButton";
 import StatusPill from "@/components/StatusPill";
 import PageLoader from "@/components/PageLoader";
+import type { ReportRow } from "@/components/ReportHistoryList";
+import ScoreChangeCard from "@/components/ScoreChangeCard";
 import type { CoverageMetrics, Finding } from "@/lib/types";
 import type { ReportPipeline } from "@/lib/api-types";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import PageEnter, { listContainer, listItem } from "@/components/PageEnter";
 import { cardClass, cardInteractiveClass, chipActiveClass, chipClass, chipIdleClass } from "@/lib/ui";
 import { clientProjectPath, clientReportDetailsPath } from "@/lib/client-routes";
+import { averageScore, gradeLabel } from "@/lib/display-score";
+import { explainScoreChange, snapshotFromRow } from "@/lib/score-change";
+
+export interface ReportTopRisk {
+  title: string;
+  detail: string;
+  count: number;
+}
 
 export interface ReportViewModel {
   id: string;
@@ -23,16 +32,21 @@ export interface ReportViewModel {
   projectId?: string;
   timestamp: string;
   overallScore: number;
+  grade: string;
+  cmsCoverage: number;
+  cmsReadiness: number;
   coverage: CoverageMetrics;
   testExecution: { total: number; passed: number; failed: number };
   findings: Finding[];
+  topRisks: ReportTopRisk[];
   status: string;
   pipeline?: ReportPipeline;
   hasDetailed: boolean;
   rawJson: Record<string, unknown>;
+  history: ReportRow[];
 }
 
-type Tab = "overview" | "findings" | "payload";
+type Tab = "overview" | "findings";
 
 function fmtDateTime(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -56,13 +70,6 @@ function scoreColor(score: number) {
   return "text-signal-pass";
 }
 
-function scoreLabel(score: number) {
-  if (score < 60) return "Critical";
-  if (score < 80) return "Needs work";
-  if (score < 90) return "Good";
-  return "Strong";
-}
-
 function scoreBadgeClass(score: number) {
   const t = scoreTone(score);
   if (t === "fail") return "bg-signal-fail/10 border-signal-fail/30";
@@ -80,8 +87,47 @@ export default function ReportView({
 }) {
   const [tab, setTab] = useState<Tab>("overview");
   const [tabReady, setTabReady] = useState(true);
-  const [pipelineOpen, setPipelineOpen] = useState(true);
+  const [pipelineOpen, setPipelineOpen] = useState(false);
   const [jsonText, setJsonText] = useState<string | null>(null);
+  const reduced = useReducedMotion();
+
+  const qualityScore = Math.max(1, Math.round(view.overallScore));
+  const grade = view.grade || "C";
+
+  const history = useMemo(() => {
+    const rows = [...view.history];
+    if (!rows.some((r) => r.id === view.id)) {
+      rows.unshift({
+        id: view.id,
+        timestamp: view.timestamp,
+        trigger: view.pipeline?.triggeredBy ?? view.pipeline?.provider ?? "pipeline",
+        overallScore: qualityScore,
+        passed: view.testExecution.passed,
+        total: view.testExecution.total,
+        failed: view.testExecution.failed,
+        coverage: view.coverage,
+        coveragePercent: view.coverage.lines,
+        status: view.status,
+        qualityGrade: grade,
+        completenessScore: view.cmsCoverage,
+        cmsReadiness: view.cmsReadiness,
+        findingsCount: view.findings.length,
+      });
+    }
+    return rows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [view, qualityScore, grade]);
+
+  const avgScore = averageScore(history.map((r) => r.overallScore));
+  const previous = useMemo(() => {
+    const idx = history.findIndex((r) => r.id === view.id);
+    return idx >= 0 ? history[idx + 1] : history[1];
+  }, [history, view.id]);
+  const scoreChange = useMemo(() => {
+    if (!previous) return null;
+    const currentRow = history.find((r) => r.id === view.id) ?? history[0];
+    if (!currentRow) return null;
+    return explainScoreChange(snapshotFromRow(currentRow), snapshotFromRow(previous));
+  }, [history, previous, view.id]);
 
   function goToTab(next: Tab) {
     if (next === tab) return;
@@ -99,31 +145,35 @@ export default function ReportView({
     let timer = 0;
     const frame = requestAnimationFrame(() => {
       timer = window.setTimeout(() => {
-        if (cancelled) return;
-        if (tab === "payload") {
-          setJsonText((cur) => cur ?? JSON.stringify(view.rawJson, null, 2));
-        }
-        setTabReady(true);
-      }, 280);
+        if (!cancelled) setTabReady(true);
+      }, 220);
     });
     return () => {
       cancelled = true;
       cancelAnimationFrame(frame);
       window.clearTimeout(timer);
     };
-  }, [tab, view.rawJson]);
+  }, [tab]);
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "overview", label: "Overview" },
     { id: "findings", label: `Findings (${view.findings.length})` },
-    { id: "payload", label: "Report JSON" },
   ];
 
-  const passRate =
-    view.testExecution.total > 0
-      ? Math.round((view.testExecution.passed / view.testExecution.total) * 100)
-      : 0;
-  const reduced = useReducedMotion();
+  const summaryCards = [
+    { label: "Total tests", value: view.testExecution.total.toLocaleString(), tone: "text-chalk" },
+    { label: "Passed tests", value: view.testExecution.passed.toLocaleString(), tone: "text-signal-pass" },
+    { label: "Failed tests", value: view.testExecution.failed.toLocaleString(), tone: view.testExecution.failed ? "text-signal-fail" : "text-chalk" },
+    { label: "Quality score", value: String(qualityScore), tone: scoreColor(qualityScore) },
+    { label: "Grade", value: grade, tone: scoreColor(qualityScore), hint: gradeLabel(grade) },
+  ];
+
+  const indicators = [
+    { label: "CMS Coverage", value: `${Math.max(1, view.cmsCoverage)}%`, tone: scoreColor(view.cmsCoverage) },
+    { label: "CMS Readiness", value: `${Math.max(1, view.cmsReadiness)}%`, tone: scoreColor(view.cmsReadiness) },
+    { label: "Quality Score", value: String(qualityScore), tone: scoreColor(qualityScore) },
+    { label: "Findings", value: view.findings.length.toLocaleString(), tone: view.findings.length ? "text-signal-warn" : "text-signal-pass" },
+  ];
 
   return (
     <PageEnter>
@@ -148,24 +198,23 @@ export default function ReportView({
             <StatusPill status={view.status} />
           </div>
           <div className="text-sm text-mist mt-1">{fmtDateTime(view.timestamp)}</div>
+          {history.length > 0 && (
+            <div className="text-sm mt-1">
+              Average quality across {history.length} run{history.length === 1 ? "" : "s"}:{" "}
+              <span className={`font-semibold ${scoreColor(avgScore)}`}>{avgScore}</span>
+            </div>
+          )}
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            goToTab("overview");
-            requestAnimationFrame(() => {
-              document.getElementById("overview-metrics")?.scrollIntoView({ behavior: "smooth", block: "start" });
-            });
-          }}
-          className={`text-right rounded-2xl border px-4 py-2.5 min-w-[9.5rem] shadow-xl shadow-black/5 dark:shadow-black/40 hover:brightness-105 transition ${scoreBadgeClass(view.overallScore)}`}
-        >
-          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist">Overall score</div>
-          <div className={`font-display text-4xl font-bold tabular-nums leading-none mt-1 ${scoreColor(view.overallScore)}`}>
-            {view.overallScore}
+        <div className={`text-right rounded-2xl border px-4 py-2.5 min-w-[9.5rem] shadow-xl shadow-black/5 dark:shadow-black/40 ${scoreBadgeClass(qualityScore)}`}>
+          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist">Quality score</div>
+          <div className={`font-display text-4xl font-bold tabular-nums leading-none mt-1 ${scoreColor(qualityScore)}`}>
+            {qualityScore}
             <span className="text-base font-medium text-mist"> /100</span>
           </div>
-          <div className={`text-[11px] font-medium mt-1 ${scoreColor(view.overallScore)}`}>{scoreLabel(view.overallScore)}</div>
-        </button>
+          <div className={`text-[11px] font-medium mt-1 ${scoreColor(qualityScore)}`}>
+            Grade {grade} · {gradeLabel(grade)}
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-6 border-b border-line pb-3">
@@ -174,9 +223,7 @@ export default function ReportView({
             key={t.id}
             type="button"
             onClick={() => goToTab(t.id)}
-            className={`${chipClass} ${
-              tab === t.id ? chipActiveClass : chipIdleClass
-            }`}
+            className={`${chipClass} ${tab === t.id ? chipActiveClass : chipIdleClass}`}
           >
             {t.label}
           </button>
@@ -191,119 +238,107 @@ export default function ReportView({
             animate={{ opacity: 1, y: 0 }}
             exit={reduced ? undefined : { opacity: 0, y: -6 }}
             transition={{ duration: reduced ? 0 : 0.25 }}
+            className="space-y-6"
           >
-          <motion.div
-            id="overview-metrics"
-            className="grid md:grid-cols-[auto_1fr] gap-6 mb-6"
-            variants={reduced ? undefined : listContainer}
-            initial={reduced ? false : "hidden"}
-            animate="show"
-          >
-            {view.hasDetailed ? (
-              <motion.div variants={reduced ? undefined : listItem} whileHover={reduced ? undefined : { y: -2 }}>
-                <Link
-                  href={clientReportDetailsPath(view.clientId, view.id)}
-                  className={`${cardInteractiveClass} p-6 flex flex-col items-center justify-center gap-2 h-full`}
+            <section>
+              <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-3">Summary</div>
+              <motion.div
+                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"
+                variants={reduced ? undefined : listContainer}
+                initial={reduced ? false : "hidden"}
+                animate="show"
+              >
+                {summaryCards.map((card) => (
+                  <motion.div key={card.label} variants={reduced ? undefined : listItem} className={`${cardClass} p-4`}>
+                    <div className="text-[10px] uppercase tracking-widest text-mist mb-2">{card.label}</div>
+                    <div className={`font-display text-2xl font-bold tabular-nums ${card.tone}`}>{card.value}</div>
+                    {card.hint ? <div className="text-[11px] text-mist mt-1">{card.hint}</div> : null}
+                  </motion.div>
+                ))}
+              </motion.div>
+            </section>
+
+            <section>
+              <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-3">Health indicators</div>
+              <motion.div
+                className="grid grid-cols-2 lg:grid-cols-4 gap-3"
+                variants={reduced ? undefined : listContainer}
+                initial={reduced ? false : "hidden"}
+                animate="show"
+              >
+                {indicators.map((card) => (
+                  <motion.div key={card.label} variants={reduced ? undefined : listItem} className={`${cardClass} p-4`}>
+                    <div className="text-[10px] uppercase tracking-widest text-mist mb-2">{card.label}</div>
+                    <div className={`font-display text-2xl font-bold tabular-nums ${card.tone}`}>{card.value}</div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </section>
+
+            <div className={`${cardClass} p-5`}>
+              <div className="text-xs uppercase tracking-widest text-mist mb-4">Coverage snapshot</div>
+              <CoverageBars coverage={view.coverage} />
+            </div>
+
+            {scoreChange && <ScoreChangeCard change={scoreChange} />}
+
+            {view.hasDetailed && (
+              <Link
+                href={clientReportDetailsPath(view.clientId, view.id)}
+                className={`group flex items-center justify-between ${cardInteractiveClass} px-5 py-3.5`}
+              >
+                <div>
+                  <div className="text-sm font-medium">Detailed quality breakdown</div>
+                  <div className="text-xs text-mist mt-0.5">Coverage by area, findings, and recommended next steps</div>
+                </div>
+                <span className="text-mist group-hover:text-signal-pass group-hover:translate-x-0.5 transition-all">→</span>
+              </Link>
+            )}
+
+            <div className={`w-full ${cardClass} overflow-hidden`}>
+              <button
+                type="button"
+                onClick={() => {
+                  setPipelineOpen((v) => !v);
+                  if (!jsonText) setJsonText(JSON.stringify(view.rawJson, null, 2));
+                }}
+                className="w-full px-5 py-3.5 text-left hover:bg-panel2/40 transition-colors flex items-center justify-between"
+              >
+                <span className="text-xs uppercase tracking-widest text-mist">Run details</span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  className={`text-mist transition-transform ${pipelineOpen ? "" : "-rotate-90"}`}
                 >
-                  <ScoreDial score={view.overallScore} size={172} />
-                  <span className="text-[11px] text-signal-pass">Open detailed breakdown →</span>
-                </Link>
-              </motion.div>
-            ) : (
-              <motion.div variants={reduced ? undefined : listItem} className={`${cardClass} p-6 flex flex-col items-center justify-center gap-2`}>
-                <ScoreDial score={view.overallScore} size={172} />
-              </motion.div>
-            )}
-            <motion.div className="grid sm:grid-cols-2 gap-6" variants={reduced ? undefined : listItem}>
-              <motion.button
-                type="button"
-                variants={reduced ? undefined : listItem}
-                whileHover={reduced ? undefined : { y: -2 }}
-                onClick={() => goToTab("findings")}
-                className={`text-left ${cardInteractiveClass} p-6`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="text-xs uppercase tracking-widest text-mist">Coverage</div>
-                  <span className="text-[11px] text-signal-pass">Findings →</span>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              {pipelineOpen && (
+                <div className="px-5 pb-4 space-y-3">
+                  <dl className="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-xs">
+                    <MetaRow label="When" value={fmtDateTime(view.timestamp)} />
+                    <MetaRow label="Branch" value={view.pipeline?.branch ?? "—"} />
+                    <MetaRow label="Started by" value={view.pipeline?.triggeredBy ?? "—"} />
+                    <MetaRow label="Source" value={view.pipeline?.provider ?? "—"} />
+                  </dl>
+                  {jsonText ? (
+                    <div className="border border-line rounded-xl overflow-hidden">
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-line bg-panel2/40">
+                        <span className="text-[11px] text-mist">Raw report (support use)</span>
+                        <CopyTextButton value={jsonText} label="Copy" />
+                      </div>
+                      <pre className="px-3 py-3 text-[11px] font-mono text-mist overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                        {jsonText}
+                      </pre>
+                    </div>
+                  ) : null}
                 </div>
-                <CoverageBars coverage={view.coverage} />
-              </motion.button>
-              <motion.button
-                type="button"
-                variants={reduced ? undefined : listItem}
-                whileHover={reduced ? undefined : { y: -2 }}
-                onClick={() => goToTab("findings")}
-                className={`text-left ${cardInteractiveClass} p-6`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="text-xs uppercase tracking-widest text-mist">Test execution</div>
-                  <span className="text-[11px] font-mono text-mist">{passRate}% pass rate</span>
-                </div>
-                <div className="grid grid-cols-2 gap-y-3 text-sm font-mono">
-                  <span className="text-mist">Total</span>
-                  <span className="text-right">{view.testExecution.total.toLocaleString()}</span>
-                  <span className="text-signal-pass">Passed</span>
-                  <span className="text-right text-signal-pass">{view.testExecution.passed.toLocaleString()}</span>
-                  <span className="text-signal-fail">Failed</span>
-                  <span className="text-right text-signal-fail">{view.testExecution.failed.toLocaleString()}</span>
-                </div>
-                <div className="mt-4 h-1.5 rounded-full bg-panel2 overflow-hidden">
-                  <motion.div
-                    className="h-full bg-signal-pass"
-                    initial={reduced ? false : { width: 0 }}
-                    animate={{ width: `${Math.min(100, passRate)}%` }}
-                    transition={{ duration: reduced ? 0 : 0.7, ease: [0.22, 1, 0.36, 1] }}
-                  />
-                </div>
-                <div className="text-[11px] text-signal-pass mt-3">View findings →</div>
-              </motion.button>
-            </motion.div>
-          </motion.div>
-
-          {view.hasDetailed && (
-            <Link
-              href={clientReportDetailsPath(view.clientId, view.id)}
-              className={`group mb-6 flex items-center justify-between ${cardInteractiveClass} px-5 py-3.5`}
-            >
-              <div>
-                <div className="text-sm font-medium">Detailed test-quality breakdown</div>
-                <div className="text-xs text-mist mt-0.5">Per-file coverage, quality findings, and sub-scores</div>
-              </div>
-              <span className="text-mist group-hover:text-signal-pass group-hover:translate-x-0.5 transition-all">→</span>
-            </Link>
-          )}
-
-          <div className={`w-full ${cardClass} overflow-hidden`}>
-            <button
-              type="button"
-              onClick={() => setPipelineOpen((v) => !v)}
-              className="w-full px-5 py-3.5 text-left hover:bg-panel2/40 transition-colors flex items-center justify-between"
-            >
-              <span className="text-xs uppercase tracking-widest text-mist">Run metadata</span>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className={`text-mist transition-transform ${pipelineOpen ? "" : "-rotate-90"}`}
-              >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
-            {pipelineOpen && (
-              <dl className="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-xs font-mono px-5 pb-4">
-                <MetaRow label="Report id" value={view.reportId} />
-                <MetaRow label="Mongo id" value={view.id} />
-                <MetaRow label="Branch" value={view.pipeline?.branch ?? "—"} />
-                <MetaRow label="Provider" value={view.pipeline?.provider ?? "—"} />
-                <MetaRow label="Trigger" value={view.pipeline?.triggeredBy ?? "—"} />
-                <MetaRow label="Commit" value={view.pipeline?.commitSha ?? "—"} />
-                <MetaRow label="Run id" value={view.pipeline?.runId ?? "—"} />
-              </dl>
-            )}
-          </div>
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -319,31 +354,6 @@ export default function ReportView({
               <PageLoader label="Loading findings…" />
             ) : (
               <FindingsPanel findings={view.findings} />
-            )}
-          </motion.section>
-        )}
-
-        {tab === "payload" && (
-          <motion.section
-            key="payload"
-            className={!tabReady ? undefined : `${cardClass} overflow-hidden`}
-            initial={reduced ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduced ? undefined : { opacity: 0, y: -6 }}
-            transition={{ duration: reduced ? 0 : 0.25 }}
-          >
-            {!tabReady || jsonText == null ? (
-              <PageLoader label="Loading report JSON…" />
-            ) : (
-              <>
-                <div className="flex items-center justify-between px-5 py-2.5 border-b border-line bg-panel2/40">
-                  <span className="text-xs uppercase tracking-widest text-mist">reportJson</span>
-                  <CopyTextButton value={jsonText} label="Copy JSON" />
-                </div>
-                <pre className="px-5 py-4 text-[11px] font-mono text-mist overflow-x-auto max-h-[32rem] overflow-y-auto whitespace-pre-wrap leading-relaxed">
-                  {jsonText}
-                </pre>
-              </>
             )}
           </motion.section>
         )}

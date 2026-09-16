@@ -23,6 +23,7 @@ export interface ReportRow {
   status?: string;
   qualityGrade?: string;
   completenessScore?: number;
+  cmsReadiness?: number;
   findingsCount?: number;
 }
 

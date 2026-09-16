@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { apiGet, backendFetch } from "@/lib/backend";
 import { detailView } from "@/lib/report-map";
+import { loadProjectReports } from "@/lib/load-project-reports";
 import type { ApiProject, ApiReportDetail } from "@/lib/api-types";
 import ReportView from "@/components/ReportView";
 import { MarkWorkspaceProject } from "@/components/ClientWorkspaceShell";
@@ -20,6 +21,13 @@ export default async function ReportDetailPage({
 
   const project = await backendFetch<ApiProject>(`/projects/${report.projectId}`).catch(() => null);
   const view = detailView(report);
+  const history = await loadProjectReports({
+    id: report.projectId,
+    clientId: report.clientId,
+    name: project?.name ?? "Project",
+    slug: project?.slug ?? "",
+    status: project?.status ?? "active",
+  }).catch(() => null);
 
   return (
     <>
@@ -33,6 +41,9 @@ export default async function ReportDetailPage({
           projectId: report.projectId,
           timestamp: view.timestamp,
           overallScore: view.overallScore,
+          grade: view.grade,
+          cmsCoverage: view.cmsCoverage,
+          cmsReadiness: view.cmsReadiness,
           coverage: view.coverage,
           testExecution: {
             total: view.testExecution.total,
@@ -40,10 +51,12 @@ export default async function ReportDetailPage({
             failed: view.testExecution.failed,
           },
           findings: view.findings,
+          topRisks: view.topRisks,
           status: view.status,
           pipeline: view.pipeline,
           hasDetailed: view.hasDetailed,
           rawJson: view.rawJson,
+          history: history?.reports ?? [],
         }}
       />
     </>

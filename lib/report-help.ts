@@ -13,6 +13,12 @@ export const METRIC_HELP: Record<string, string> = {
     "Application source modules with no matching unit test file (by name, folder, or import). Open Missing tests for what to write.",
   "High-risk gaps":
     "High-priority completeness recommendations — usually untested pages/APIs or modules with loading/performance risks.",
+  "Quality score":
+    "Overall suite health from 0–100. Starts at 100, then drops for static findings (errors cost more), failing tests, and low average line coverage.",
+  "CMS readiness":
+    "CMS migration readiness from 0–100. Separate from Quality Score. Deducts for legacy CMS refs in tests; small bonus when target CMS patterns also appear.",
+  "Test completeness":
+    "How completely application source modules are covered by unit tests (0–100). Separate from Quality Score. Deducts for untested pages/APIs/components and weak coverage.",
   "Total tests":
     "Every test Jest registered: passed + failed + pending + todo. That is why Total is often larger than Passed + Failed alone.",
   Passed:
@@ -37,12 +43,41 @@ export const HERO_NOTES = {
   completeness: "Jest shows what ran. Completeness shows what is still missing and what to write next.",
 } as const;
 
-export type MetricModalKind = "tests" | "failed" | "issues";
+export type MetricModalKind = "tests" | "failed" | "issues" | "hero";
 
 export const METRIC_MODAL: Record<
   string,
-  { kind: MetricModalKind; title: string; sub: string; status?: string; severity?: string; section?: "static" | "failed" | "files" | "cms" | "missing" }
+  {
+    kind: MetricModalKind;
+    title: string;
+    sub: string;
+    status?: string;
+    severity?: string;
+    hero?: "quality" | "cms" | "completeness";
+    section?: "static" | "failed" | "files" | "cms" | "missing";
+  }
 > = {
+  "Quality score": {
+    kind: "hero",
+    title: "Quality score",
+    sub: HERO_NOTES.quality,
+    hero: "quality",
+    section: "static",
+  },
+  "CMS readiness": {
+    kind: "hero",
+    title: "CMS readiness",
+    sub: HERO_NOTES.cms,
+    hero: "cms",
+    section: "cms",
+  },
+  "Test completeness": {
+    kind: "hero",
+    title: "Test completeness",
+    sub: HERO_NOTES.completeness,
+    hero: "completeness",
+    section: "missing",
+  },
   "Total tests": {
     kind: "tests",
     title: "All tests",
@@ -98,5 +133,26 @@ export const METRIC_MODAL: Record<
     sub: "Lower-priority readability and hygiene hints.",
     severity: "info",
     section: "static",
+  },
+  "Legacy refs": {
+    kind: "hero",
+    title: "CMS readiness",
+    sub: HERO_NOTES.cms,
+    hero: "cms",
+    section: "cms",
+  },
+  Untested: {
+    kind: "hero",
+    title: "Test completeness",
+    sub: HERO_NOTES.completeness,
+    hero: "completeness",
+    section: "missing",
+  },
+  "High-risk gaps": {
+    kind: "hero",
+    title: "Test completeness",
+    sub: HERO_NOTES.completeness,
+    hero: "completeness",
+    section: "missing",
   },
 };
