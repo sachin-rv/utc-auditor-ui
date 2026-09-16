@@ -19,13 +19,19 @@ const LABELS: { key: keyof CoverageMetrics; label: string }[] = [
   { key: "lines", label: "Lines" },
 ];
 
-export default function CoverageBars({ coverage }: { coverage: CoverageMetrics }) {
+export default function CoverageBars({
+  coverage,
+  compact = false,
+}: {
+  coverage: CoverageMetrics;
+  compact?: boolean;
+}) {
   const theme = useTheme();
   const c = THEME_COLORS[theme];
   const reduced = useReducedMotion();
 
   return (
-    <div className="space-y-3">
+    <div className={compact ? "grid grid-cols-2 gap-x-5 gap-y-2" : "space-y-3"}>
       {LABELS.map(({ key, label }, i) => {
         const v = coverage[key];
         const color = bandColor(v, c);
@@ -37,7 +43,7 @@ export default function CoverageBars({ coverage }: { coverage: CoverageMetrics }
                 {v}%
               </span>
             </div>
-            <div className="h-1.5 w-full rounded-full bg-line overflow-hidden">
+            <div className={`${compact ? "h-1" : "h-1.5"} w-full rounded-full bg-line overflow-hidden`}>
               <motion.div
                 className="h-full rounded-full"
                 style={{ backgroundColor: color }}

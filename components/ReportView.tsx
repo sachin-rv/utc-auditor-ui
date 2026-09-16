@@ -164,8 +164,7 @@ export default function ReportView({
     { label: "Total tests", value: view.testExecution.total.toLocaleString(), tone: "text-chalk" },
     { label: "Passed tests", value: view.testExecution.passed.toLocaleString(), tone: "text-signal-pass" },
     { label: "Failed tests", value: view.testExecution.failed.toLocaleString(), tone: view.testExecution.failed ? "text-signal-fail" : "text-chalk" },
-    { label: "Quality score", value: String(qualityScore), tone: scoreColor(qualityScore) },
-    { label: "Grade", value: grade, tone: scoreColor(qualityScore), hint: gradeLabel(grade) },
+    { label: "Quality score", value: String(qualityScore), tone: scoreColor(qualityScore), hint: `Grade ${grade} · ${gradeLabel(grade)}` },
   ];
 
   const indicators = [
@@ -238,46 +237,58 @@ export default function ReportView({
             animate={{ opacity: 1, y: 0 }}
             exit={reduced ? undefined : { opacity: 0, y: -6 }}
             transition={{ duration: reduced ? 0 : 0.25 }}
-            className="space-y-6"
+            className="space-y-3"
           >
-            <section>
-              <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-3">Summary</div>
-              <motion.div
-                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"
-                variants={reduced ? undefined : listContainer}
-                initial={reduced ? false : "hidden"}
-                animate="show"
-              >
-                {summaryCards.map((card) => (
-                  <motion.div key={card.label} variants={reduced ? undefined : listItem} className={`${cardClass} p-4`}>
-                    <div className="text-[10px] uppercase tracking-widest text-mist mb-2">{card.label}</div>
-                    <div className={`font-display text-2xl font-bold tabular-nums ${card.tone}`}>{card.value}</div>
-                    {card.hint ? <div className="text-[11px] text-mist mt-1">{card.hint}</div> : null}
-                  </motion.div>
-                ))}
-              </motion.div>
-            </section>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+              <section>
+                <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-1.5">Summary</div>
+                <motion.div
+                  className="grid grid-cols-2 gap-2"
+                  variants={reduced ? undefined : listContainer}
+                  initial={reduced ? false : "hidden"}
+                  animate="show"
+                >
+                  {summaryCards.map((card) => (
+                    <motion.div
+                      key={card.label}
+                      variants={reduced ? undefined : listItem}
+                      className={`${cardClass} flex items-center justify-between gap-3 px-3 py-2.5`}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-widest text-mist leading-none">{card.label}</div>
+                        {card.hint ? <div className="text-[11px] text-mist mt-1 leading-none truncate">{card.hint}</div> : null}
+                      </div>
+                      <div className={`font-display text-xl font-bold tabular-nums leading-none shrink-0 ${card.tone}`}>{card.value}</div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </section>
 
-            <section>
-              <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-3">Health indicators</div>
-              <motion.div
-                className="grid grid-cols-2 lg:grid-cols-4 gap-3"
-                variants={reduced ? undefined : listContainer}
-                initial={reduced ? false : "hidden"}
-                animate="show"
-              >
-                {indicators.map((card) => (
-                  <motion.div key={card.label} variants={reduced ? undefined : listItem} className={`${cardClass} p-4`}>
-                    <div className="text-[10px] uppercase tracking-widest text-mist mb-2">{card.label}</div>
-                    <div className={`font-display text-2xl font-bold tabular-nums ${card.tone}`}>{card.value}</div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </section>
+              <section>
+                <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-1.5">Health indicators</div>
+                <motion.div
+                  className="grid grid-cols-2 gap-2"
+                  variants={reduced ? undefined : listContainer}
+                  initial={reduced ? false : "hidden"}
+                  animate="show"
+                >
+                  {indicators.map((card) => (
+                    <motion.div
+                      key={card.label}
+                      variants={reduced ? undefined : listItem}
+                      className={`${cardClass} flex items-center justify-between gap-3 px-3 py-2.5`}
+                    >
+                      <div className="text-[10px] uppercase tracking-widest text-mist leading-none">{card.label}</div>
+                      <div className={`font-display text-xl font-bold tabular-nums leading-none shrink-0 ${card.tone}`}>{card.value}</div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </section>
+            </div>
 
-            <div className={`${cardClass} p-5`}>
-              <div className="text-xs uppercase tracking-widest text-mist mb-4">Coverage snapshot</div>
-              <CoverageBars coverage={view.coverage} />
+            <div className={`${cardClass} px-4 py-3`}>
+              <div className="text-[10px] uppercase tracking-widest text-mist mb-2">Coverage snapshot</div>
+              <CoverageBars coverage={view.coverage} compact />
             </div>
 
             {scoreChange && <ScoreChangeCard change={scoreChange} />}
@@ -285,7 +296,7 @@ export default function ReportView({
             {view.hasDetailed && (
               <Link
                 href={clientReportDetailsPath(view.clientId, view.id)}
-                className={`group flex items-center justify-between ${cardInteractiveClass} px-5 py-3.5`}
+                className={`group flex items-center justify-between ${cardInteractiveClass} px-4 py-2.5`}
               >
                 <div>
                   <div className="text-sm font-medium">Detailed quality breakdown</div>
@@ -302,7 +313,7 @@ export default function ReportView({
                   setPipelineOpen((v) => !v);
                   if (!jsonText) setJsonText(JSON.stringify(view.rawJson, null, 2));
                 }}
-                className="w-full px-5 py-3.5 text-left hover:bg-panel2/40 transition-colors flex items-center justify-between"
+                className="w-full px-4 py-2.5 text-left hover:bg-panel2/40 transition-colors flex items-center justify-between"
               >
                 <span className="text-xs uppercase tracking-widest text-mist">Run details</span>
                 <svg

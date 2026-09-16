@@ -12,14 +12,14 @@ export default function ScoreChangeCard({ change }: { change: ScoreChange }) {
         : "text-mist border-line bg-panel2/40";
 
   return (
-    <section className={`${cardClass} p-5`}>
-      <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-2">
+    <section className={`${cardClass} px-4 py-3`}>
+      <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-1.5">
         Why the score changed
       </div>
-      <div className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium mb-3 ${tone}`}>
+      <div className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium mb-2 ${tone}`}>
         {change.headline}
       </div>
-      <ul className="space-y-1.5 text-sm text-chalk">
+      <ul className="space-y-1 text-sm text-chalk">
         {change.reasons.map((reason) => (
           <li key={reason} className="flex gap-2">
             <span className="text-mist mt-0.5">•</span>
