@@ -121,8 +121,8 @@ sequenceDiagram
 sequenceDiagram
   autonumber
   actor User
-  participant Report as "/report/{id}"
-  participant Quality as "/report/{id}/details"
+  participant Report as /report/{id}
+  participant Quality as /report/{id}/details
   participant API as Nest /api
   participant Map as report-map / user-report
 
