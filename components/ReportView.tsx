@@ -164,13 +164,11 @@ export default function ReportView({
     { label: "Total tests", value: view.testExecution.total.toLocaleString(), tone: "text-chalk" },
     { label: "Passed tests", value: view.testExecution.passed.toLocaleString(), tone: "text-signal-pass" },
     { label: "Failed tests", value: view.testExecution.failed.toLocaleString(), tone: view.testExecution.failed ? "text-signal-fail" : "text-chalk" },
-    { label: "Quality score", value: String(qualityScore), tone: scoreColor(qualityScore), hint: `Grade ${grade} · ${gradeLabel(grade)}` },
   ];
 
   const indicators = [
     { label: "CMS Coverage", value: `${Math.max(1, view.cmsCoverage)}%`, tone: scoreColor(view.cmsCoverage) },
     { label: "CMS Readiness", value: `${Math.max(1, view.cmsReadiness)}%`, tone: scoreColor(view.cmsReadiness) },
-    { label: "Quality Score", value: String(qualityScore), tone: scoreColor(qualityScore) },
     { label: "Findings", value: view.findings.length.toLocaleString(), tone: view.findings.length ? "text-signal-warn" : "text-signal-pass" },
   ];
 
@@ -242,7 +240,7 @@ export default function ReportView({
               <section>
                 <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-1.5">Summary</div>
                 <motion.div
-                  className="grid grid-cols-2 gap-2"
+                  className="grid grid-cols-3 gap-2"
                   variants={reduced ? undefined : listContainer}
                   initial={reduced ? false : "hidden"}
                   animate="show"
@@ -253,10 +251,7 @@ export default function ReportView({
                       variants={reduced ? undefined : listItem}
                       className={`${cardClass} flex items-center justify-between gap-3 px-3 py-2.5`}
                     >
-                      <div className="min-w-0">
-                        <div className="text-[10px] uppercase tracking-widest text-mist leading-none">{card.label}</div>
-                        {card.hint ? <div className="text-[11px] text-mist mt-1 leading-none truncate">{card.hint}</div> : null}
-                      </div>
+                      <div className="text-[10px] uppercase tracking-widest text-mist leading-none">{card.label}</div>
                       <div className={`font-display text-xl font-bold tabular-nums leading-none shrink-0 ${card.tone}`}>{card.value}</div>
                     </motion.div>
                   ))}
@@ -266,7 +261,7 @@ export default function ReportView({
               <section>
                 <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-1.5">Health indicators</div>
                 <motion.div
-                  className="grid grid-cols-2 gap-2"
+                  className="grid grid-cols-3 gap-2"
                   variants={reduced ? undefined : listContainer}
                   initial={reduced ? false : "hidden"}
                   animate="show"
