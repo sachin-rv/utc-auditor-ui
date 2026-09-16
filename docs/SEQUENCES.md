@@ -121,25 +121,25 @@ sequenceDiagram
 sequenceDiagram
   autonumber
   actor User
-  participant Report as /report/{id}
-  participant Details as /report/{id}/details
+  participant Report as "/report/{id}"
+  participant Quality as "/report/{id}/details"
   participant API as Nest /api
   participant Map as report-map / user-report
 
   User->>Report: Open report
   Report->>API: GET /reports/{id}
   Report->>API: GET /projects/{projectId}
-  Report->>API: GET /projects/{projectId}/reports?...
-  API-->>Map: reportJson + summary
-  Map-->>Report: Overview, findings, history
-  User->>Details: Detailed breakdown
-  Details->>API: GET /reports/{id}
-  Details->>API: GET /projects/{projectId}
-  Details->>Map: parseUserReport(reportJson)
+  Report->>API: GET /projects/{projectId}/reports
+  API-->>Map: reportJson and summary
+  Map-->>Report: Overview findings history
+  User->>Quality: Open detailed breakdown
+  Quality->>API: GET /reports/{id}
+  Quality->>API: GET /projects/{projectId}
+  Quality->>Map: parseUserReport reportJson
   alt Parse succeeds
-    Details-->>User: Quality / CMS / coverage dashboard
+    Quality-->>User: Quality CMS coverage dashboard
   else Parse fails
-    Details-->>User: 404
+    Quality-->>User: 404
   end
 ```
 
