@@ -1,10 +1,10 @@
 import { apiGet } from "@/lib/backend";
 import { listRowFromApi } from "@/lib/report-map";
 import { normalizeReportDetail, normalizeReportsPage } from "@/lib/api-normalize";
-import type { ApiProject } from "@/lib/api-types";
+import type { ApiProject, ApiReportsPage } from "@/lib/api-types";
 import type { ProjectBoardItem } from "@/components/ProjectsBoard";
 
-const LIST_LIMIT = 50;
+const LIST_LIMIT = 20;
 const HYDRATE_LIMIT = 12;
 
 export async function loadProjectBoardItems(projects: ApiProject[]): Promise<ProjectBoardItem[]> {
@@ -16,7 +16,7 @@ export async function loadProjectReports(project: ApiProject): Promise<ProjectBo
 }
 
 async function loadOne(project: ApiProject): Promise<ProjectBoardItem> {
-  const raw = await apiGet<unknown>(`/projects/${project.id}/reports?page=1&limit=${LIST_LIMIT}`);
+  const raw = await apiGet<ApiReportsPage>(`/projects/${project.id}/reports?page=1&limit=${LIST_LIMIT}`);
   const page = normalizeReportsPage(raw, project);
   const head = page.reports.slice(0, HYDRATE_LIMIT);
   const tail = page.reports.slice(HYDRATE_LIMIT);

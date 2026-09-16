@@ -4,6 +4,16 @@ Authenticated Next.js dashboard for the UTC Auditor platform. This app acts as a
 
 The UI does not own the source of truth for clients, projects, reports, or users. Those live in the backend API, and this app reads and writes through authenticated calls.
 
+## Documentation
+
+| Doc | Contents |
+| --- | --- |
+| [docs/FUNCTIONALITY.md](docs/FUNCTIONALITY.md) | Architecture, auth, roles, screens, report pipeline |
+| [docs/API.md](docs/API.md) | Browser BFF routes and every Nest API call the app makes |
+| [docs/SEQUENCES.md](docs/SEQUENCES.md) | Mermaid sequence diagrams (auth, loads, writes, CI ingest) |
+| [docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md) | QA pass/fail checklist and smoke path |
+| [docs/CONFLUENCE.md](docs/CONFLUENCE.md) | Single page to paste into Confluence or Notion |
+
 ## Project structure
 
 ```text
