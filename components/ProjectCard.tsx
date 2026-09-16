@@ -14,6 +14,7 @@ import CopyTextButton from "@/components/CopyTextButton";
 import EditProjectButton from "@/components/EditProjectButton";
 import type { ApiProject } from "@/lib/api-types";
 import { clientProjectPath } from "@/lib/client-routes";
+import { averageScore } from "@/lib/display-score";
 
 function envLabel(envType: string) {
   const labels: Record<string, string> = {
@@ -50,6 +51,7 @@ export default function ProjectCard({
   };
   const passRate =
     latest && latest.total > 0 ? Math.round((latest.passed / latest.total) * 100) : 0;
+  const avgScore = averageScore(reports.map((r) => r.overallScore));
   const reduced = useReducedMotion();
 
   return (
@@ -127,7 +129,7 @@ export default function ProjectCard({
               <>
                 <div className="grid lg:grid-cols-[auto_minmax(12rem,0.9fr)_minmax(16rem,1.35fr)] gap-8 px-6 py-6 border-b border-line">
                   <ScoreDial
-                    score={latest?.overallScore ?? 0}
+                    score={latest?.overallScore ?? 1}
                     label={latest?.qualityGrade ? `Grade ${latest.qualityGrade}` : "Quality score"}
                   />
                   <div>
@@ -157,14 +159,15 @@ export default function ProjectCard({
                   <TrendChart
                     points={reports.map((r) => ({
                       timestamp: r.timestamp,
-                      score: r.overallScore,
-                      coverage: r.coverage?.lines ?? r.coveragePercent ?? 0,
+                      score: Math.max(1, r.overallScore),
+                      coverage: r.coverage?.lines ?? r.coveragePercent ?? 1,
                     }))}
                   />
                 </div>
                 <div className="px-6 py-4">
                   <div className="text-xs uppercase tracking-widest text-mist mb-3">
                     Report history ({total})
+                    {reports.length > 1 ? ` · avg quality ${avgScore}` : ""}
                   </div>
                   <ReportHistoryList clientId={clientId} reports={reports} />
                 </div>

@@ -33,7 +33,13 @@ function fmtFull(iso: string) {
   });
 }
 
-export default function TrendChart({ points }: { points: TrendPoint[] }) {
+export default function TrendChart({
+  points,
+  hideTitle = false,
+}: {
+  points: TrendPoint[];
+  hideTitle?: boolean;
+}) {
   const theme = useTheme();
   const c = THEME_COLORS[theme];
   const [showScore, setShowScore] = useState(true);
@@ -58,9 +64,11 @@ export default function TrendChart({ points }: { points: TrendPoint[] }) {
   }
 
   return (
-    <div className="h-full flex flex-col min-w-0">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="text-xs uppercase tracking-widest text-mist">Score & coverage trend</div>
+    <div className="flex flex-col min-w-0">
+      <div className={`flex items-center ${hideTitle ? "justify-end" : "justify-between"} gap-2 mb-2`}>
+        {hideTitle ? null : (
+          <div className="text-xs uppercase tracking-widest text-mist">Score & coverage trend</div>
+        )}
         <div className="flex items-center gap-2">
           <SeriesToggle
             active={showScore}
@@ -79,7 +87,7 @@ export default function TrendChart({ points }: { points: TrendPoint[] }) {
         </div>
       </div>
 
-      <div className="flex-1 min-h-[11.5rem] h-[11.5rem]">
+      <div className="h-[11.5rem]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={series} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
             <CartesianGrid stroke={c.line} vertical={false} />

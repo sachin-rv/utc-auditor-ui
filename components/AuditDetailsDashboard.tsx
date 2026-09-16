@@ -129,6 +129,10 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
       });
       return;
     }
+    if (cfg?.kind === "hero" && cfg.hero) {
+      setDetail({ type: "hero", key: cfg.hero });
+      return;
+    }
     go(section);
   }
 
@@ -153,6 +157,9 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
     section: SectionId;
     clickable: boolean;
   }[] = [
+    { label: "Quality score", value: data.quality.score, tone: scoreTone(data.quality.score), section: "static", clickable: true },
+    { label: "CMS readiness", value: data.cms.score, tone: scoreTone(data.cms.score), section: "cms", clickable: true },
+    { label: "Test completeness", value: data.completeness.score, tone: scoreTone(data.completeness.score), section: "missing", clickable: true },
     { label: "Total tests", value: data.run.total, tone: "neutral", section: "files", clickable: true },
     { label: "Passed", value: data.run.passed, tone: "pass", section: "files", clickable: true },
     { label: "Failed", value: data.run.failed, tone: countTone(data.run.failed), section: "failed", clickable: true },
@@ -161,9 +168,9 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
     { label: "Static errors", value: staticCounts.error, tone: countTone(staticCounts.error), section: "static", clickable: true },
     { label: "Static warnings", value: staticCounts.warning, tone: countTone(staticCounts.warning), section: "static", clickable: true },
     { label: "Static info", value: staticCounts.info, tone: countTone(staticCounts.info), section: "static", clickable: true },
-    { label: "Legacy refs", value: data.cms.stats.filesWithLegacyRefs, tone: countTone(data.cms.stats.filesWithLegacyRefs), section: "cms", clickable: false },
-    { label: "Untested", value: data.completeness.stats.untested, tone: countTone(data.completeness.stats.untested), section: "missing", clickable: false },
-    { label: "High-risk gaps", value: data.completeness.stats.highPriority, tone: countTone(data.completeness.stats.highPriority), section: "missing", clickable: false },
+    { label: "Legacy refs", value: data.cms.stats.filesWithLegacyRefs, tone: countTone(data.cms.stats.filesWithLegacyRefs), section: "cms", clickable: true },
+    { label: "Untested", value: data.completeness.stats.untested, tone: countTone(data.completeness.stats.untested), section: "missing", clickable: true },
+    { label: "High-risk gaps", value: data.completeness.stats.highPriority, tone: countTone(data.completeness.stats.highPriority), section: "missing", clickable: true },
   ];
 
   const strategyIssues = detail?.type === "strategy"
@@ -172,71 +179,8 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
 
   return (
     <div className="space-y-4">
-
-      <HeroRow
-        kicker="Quality score"
-        scoreHelpKey="Score"
-        score={data.quality.score}
-        grade={data.quality.grade}
-        label={data.quality.label}
-        note={HERO_NOTES.quality}
-        onOpen={() => setDetail({ type: "hero", key: "quality" })}
-      >
-        <p className="text-sm leading-relaxed">{data.quality.summary}</p>
-        {data.quality.byStrategy.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {data.quality.byStrategy.slice(0, 6).map((s) => (
-              <button
-                key={s.strategy}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openStrategy(s);
-                }}
-                className="text-[11px] font-mono px-2 py-0.5 rounded-full border border-line text-mist hover:border-signal-pass/40 hover:text-signal-pass transition-colors"
-              >
-                {s.title}
-                {s.total ? ` · ${s.total}` : ""}
-              </button>
-            ))}
-          </div>
-        )}
-      </HeroRow>
-
-      <HeroRow
-        kicker="CMS readiness"
-        scoreHelpKey="Readiness"
-        score={data.cms.score}
-        grade={data.cms.grade}
-        label={data.cms.label}
-        note={HERO_NOTES.cms}
-        onOpen={() => setDetail({ type: "hero", key: "cms" })}
-      >
-        <p className="text-xs font-mono text-mist mb-2">
-          {data.cms.fromCms} <span className="text-chalk">→</span> {data.cms.toCms}
-        </p>
-        <p className="text-sm leading-relaxed">{data.cms.summary}</p>
-      </HeroRow>
-
-      <HeroRow
-        kicker="Test completeness"
-        scoreHelpKey="Completeness"
-        score={data.completeness.score}
-        grade={data.completeness.grade}
-        label={data.completeness.label}
-        note={HERO_NOTES.completeness}
-        onOpen={() => setDetail({ type: "hero", key: "completeness" })}
-      >
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <Chip>{data.completeness.stats.sourcesScanned} scanned</Chip>
-          <Chip tone="pass">{data.completeness.stats.withTests} with tests</Chip>
-          <Chip tone="warn">{data.completeness.stats.untested} untested</Chip>
-        </div>
-        <p className="text-sm leading-relaxed">{data.completeness.summary}</p>
-      </HeroRow>
-
       <motion.div
-        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 pt-2"
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3"
         variants={reduced ? undefined : listContainer}
         initial={reduced ? false : "hidden"}
         animate="show"
@@ -404,6 +348,8 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
         onClose={() => setDetail(null)}
         onOpenIssue={(issue) => setDetail({ type: "issue", issue })}
         onOpenFailed={(item) => setDetail({ type: "failed", item })}
+        onOpenStrategy={openStrategy}
+        onOpenRec={(rec) => setDetail({ type: "rec", rec })}
       />
     </div>
   );
@@ -416,6 +362,8 @@ function DetailModal({
   onClose,
   onOpenIssue,
   onOpenFailed,
+  onOpenStrategy,
+  onOpenRec,
 }: {
   data: UserReportView;
   detail: Detail | null;
@@ -423,6 +371,8 @@ function DetailModal({
   onClose: () => void;
   onOpenIssue: (issue: StaticIssue) => void;
   onOpenFailed: (item: FailedCase) => void;
+  onOpenStrategy: (strategy: QualityStrategy) => void;
+  onOpenRec: (rec: CompletenessRec) => void;
 }) {
   const title =
     detail?.type === "issue"
@@ -458,7 +408,9 @@ function DetailModal({
         ? detail.sub
         : detail?.type === "failed-list"
           ? "Failing tests with captured error output."
-          : undefined;
+          : detail?.type === "hero"
+            ? HERO_NOTES[detail.key]
+            : undefined;
 
   return (
     <Modal open={!!detail} onClose={onClose} title={title} subtitle={subtitle} widthClass="max-w-6xl">
@@ -486,7 +438,15 @@ function DetailModal({
       {detail?.type === "file" && <FileDetail file={detail.file} />}
       {detail?.type === "coverage" && <CoverageDetail file={detail.file} />}
       {detail?.type === "rec" && <RecDetail rec={detail.rec} />}
-      {detail?.type === "hero" && <HeroDetail data={data} which={detail.key} />}
+      {detail?.type === "hero" && (
+        <HeroDetail
+          data={data}
+          which={detail.key}
+          onOpenStrategy={onOpenStrategy}
+          onOpenIssue={onOpenIssue}
+          onOpenRec={onOpenRec}
+        />
+      )}
     </Modal>
   );
 }
@@ -657,56 +617,114 @@ function RecDetail({ rec }: { rec: CompletenessRec }) {
   );
 }
 
-function HeroDetail({ data, which }: { data: UserReportView; which: "quality" | "cms" | "completeness" }) {
-  if (which === "quality") {
-    return (
-      <div className="space-y-3">
-        <p className="text-sm leading-relaxed">{data.quality.summary}</p>
-        <div className="grid grid-cols-2 gap-2">
-          {data.quality.byStrategy.map((s) => (
-            <div key={s.strategy} className="border border-line rounded-xl px-3 py-2">
-              <div className="text-xs font-medium">{s.title}</div>
-              <div className="text-[11px] text-mist mt-0.5">
-                {s.errors} err · {s.warnings} warn · {s.total} total
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-  if (which === "cms") {
-    return (
-      <div className="space-y-3">
-        <p className="text-xs font-mono text-mist">
-          {data.cms.fromCms} → {data.cms.toCms}
-        </p>
-        <p className="text-sm leading-relaxed">{data.cms.summary}</p>
-        <div className="flex flex-wrap gap-2">
-          <Chip>{data.cms.stats.filesScanned} scanned</Chip>
-          <Chip tone="warn">{data.cms.stats.filesWithLegacyRefs} legacy files</Chip>
-          <Chip tone="fail">{data.cms.stats.legacyIssues} legacy issues</Chip>
-          <Chip tone="warn">{data.cms.stats.gapIssues} gaps</Chip>
-          {data.cms.byCategory.map((c) => (
-            <Chip key={c.category}>
-              {c.category} · {c.count}
-            </Chip>
-          ))}
-        </div>
-      </div>
-    );
-  }
+function HeroDetail({
+  data,
+  which,
+  onOpenStrategy,
+  onOpenIssue,
+  onOpenRec,
+}: {
+  data: UserReportView;
+  which: "quality" | "cms" | "completeness";
+  onOpenStrategy: (strategy: QualityStrategy) => void;
+  onOpenIssue: (issue: StaticIssue) => void;
+  onOpenRec: (rec: CompletenessRec) => void;
+}) {
+  const block =
+    which === "quality" ? data.quality : which === "cms" ? data.cms : data.completeness;
+  const sTone = scoreTone(block.score);
+  const gTone = gradeTone(block.grade);
+
   return (
-    <div className="space-y-3">
-      <p className="text-sm leading-relaxed">{data.completeness.summary}</p>
-      <div className="flex flex-wrap gap-2">
-        <Chip>{data.completeness.stats.sourcesScanned} scanned</Chip>
-        <Chip tone="pass">{data.completeness.stats.withTests} with tests</Chip>
-        <Chip tone="warn">{data.completeness.stats.untested} untested</Chip>
-        <Chip tone="warn">{data.completeness.stats.weakCoverage} weak coverage</Chip>
-        <Chip>{data.completeness.stats.perfRisks} perf risks</Chip>
-        <Chip tone="fail">{data.completeness.stats.highPriority} high priority</Chip>
+    <div className="space-y-4">
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className={`border ${TONE_BORDER[sTone]} bg-panel2/40 rounded-2xl p-4`}>
+          <div className="text-[10px] uppercase tracking-widest text-mist mb-1">Score</div>
+          <div className={`font-display text-3xl font-bold ${TONE_TEXT[sTone]}`}>
+            {block.score}
+            <span className="text-lg text-mist font-medium">/100</span>
+          </div>
+        </div>
+        <div className={`border ${TONE_BORDER[gTone]} bg-panel2/40 rounded-2xl p-4`}>
+          <div className="text-[10px] uppercase tracking-widest text-mist mb-1">Grade</div>
+          <div className={`font-display text-3xl font-bold ${TONE_TEXT[gTone]}`}>{block.grade}</div>
+          <div className={`text-xs mt-0.5 ${TONE_TEXT[gTone]}`}>{block.label}</div>
+        </div>
       </div>
+      <p className="text-sm leading-relaxed">{block.summary}</p>
+
+      {which === "quality" && (
+        <div className="space-y-3">
+          {data.quality.byStrategy.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {data.quality.byStrategy.map((s) => (
+                <button
+                  key={s.strategy}
+                  type="button"
+                  onClick={() => onOpenStrategy(s)}
+                  className="text-[11px] font-mono px-2 py-0.5 rounded-full border border-line text-mist hover:border-signal-pass/40 hover:text-signal-pass transition-colors"
+                >
+                  {s.title}
+                  {s.total ? ` · ${s.total}` : ""}
+                </button>
+              ))}
+            </div>
+          )}
+          <IssuesTable
+            issues={data.staticIssues}
+            strategyTitles={Object.fromEntries(data.quality.byStrategy.map((s) => [s.strategy, s.title]))}
+            onSelect={onOpenIssue}
+          />
+        </div>
+      )}
+
+      {which === "cms" && (
+        <div className="space-y-3">
+          <p className="text-xs font-mono text-mist">
+            {data.cms.fromCms} <span className="text-chalk">→</span> {data.cms.toCms}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Chip>{data.cms.stats.filesScanned} scanned</Chip>
+            <Chip tone="warn">{data.cms.stats.filesWithLegacyRefs} legacy files</Chip>
+            <Chip tone="fail">{data.cms.stats.legacyIssues} legacy issues</Chip>
+            <Chip tone="warn">{data.cms.stats.gapIssues} gaps</Chip>
+            <Chip tone="pass">{data.cms.stats.progressSignals} progress</Chip>
+            {data.cms.byCategory.map((c) => (
+              <Chip key={c.category}>
+                {c.category} · {c.count}
+              </Chip>
+            ))}
+          </div>
+          {data.cms.issues.length === 0 ? (
+            <p className="text-sm text-mist">No CMS migration issues in this run.</p>
+          ) : (
+            <IssuesTable
+              issues={data.cms.issues}
+              strategyTitles={Object.fromEntries(data.cms.byCategory.map((c) => [c.category, c.category]))}
+              onSelect={onOpenIssue}
+            />
+          )}
+        </div>
+      )}
+
+      {which === "completeness" && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Chip>{data.completeness.stats.sourcesScanned} scanned</Chip>
+            <Chip tone="pass">{data.completeness.stats.withTests} with tests</Chip>
+            <Chip tone="warn">{data.completeness.stats.untested} untested</Chip>
+            <Chip tone="warn">{data.completeness.stats.weakCoverage} weak coverage</Chip>
+            <Chip>{data.completeness.stats.perfRisks} perf risks</Chip>
+            <Chip>{data.completeness.stats.recommendations} recommendations</Chip>
+            <Chip tone="fail">{data.completeness.stats.highPriority} high priority</Chip>
+          </div>
+          {data.completeness.recommendations.length === 0 ? (
+            <p className="text-sm text-mist">No completeness recommendations in this run.</p>
+          ) : (
+            <RecommendationsList items={data.completeness.recommendations} onSelect={onOpenRec} />
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -730,7 +748,7 @@ function SeverityChip({ severity }: { severity: string }) {
 
 function AnimatedNumber({ value }: { value: number }) {
   const reduced = useReducedMotion();
-  const [n, setN] = useState(reduced ? value : 0);
+  const [n, setN] = useState(value);
 
   useEffect(() => {
     if (reduced) {
@@ -739,7 +757,7 @@ function AnimatedNumber({ value }: { value: number }) {
     }
     let raf = 0;
     const start = performance.now();
-    const from = 0;
+    const from = n;
     const tick = (t: number) => {
       const p = Math.min(1, (t - start) / 700);
       const eased = 1 - Math.pow(1 - p, 3);
@@ -751,69 +769,6 @@ function AnimatedNumber({ value }: { value: number }) {
   }, [value, reduced]);
 
   return <>{n.toLocaleString()}</>;
-}
-
-function HeroRow({
-  kicker,
-  scoreHelpKey,
-  score,
-  grade,
-  label,
-  note,
-  onOpen,
-  children,
-}: {
-  kicker: string;
-  scoreHelpKey: string;
-  score: number;
-  grade: string;
-  label: string;
-  note: string;
-  onOpen: () => void;
-  children: React.ReactNode;
-}) {
-  const sTone = scoreTone(score);
-  const gTone = gradeTone(grade);
-  const reduced = useReducedMotion();
-  return (
-    <motion.div
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onOpen();
-        }
-      }}
-      whileHover={reduced ? undefined : { y: -2 }}
-      className="w-full text-left grid md:grid-cols-[minmax(0,11rem)_minmax(0,11rem)_1fr] gap-3 cursor-pointer"
-    >
-      <div className={`border ${TONE_BORDER[sTone]} bg-panel rounded-2xl p-4 shadow-xl shadow-black/5 dark:shadow-black/40`}>
-        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-mist mb-1">
-          {kicker}
-          <InfoTip label={scoreHelpKey} text={METRIC_HELP[scoreHelpKey] ?? ""} />
-        </div>
-        <div className={`font-display text-3xl font-bold ${TONE_TEXT[sTone]}`}>
-          <AnimatedNumber value={score} />
-          <span className="text-lg text-mist font-medium">/100</span>
-        </div>
-      </div>
-      <div className={`border ${TONE_BORDER[gTone]} bg-panel rounded-2xl p-4 shadow-xl shadow-black/5 dark:shadow-black/40`}>
-        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-mist mb-1">
-          Grade
-          <InfoTip label="Grade" text={METRIC_HELP.Grade} />
-        </div>
-        <div className={`font-display text-3xl font-bold ${TONE_TEXT[gTone]}`}>{grade}</div>
-        <div className={`text-xs mt-0.5 ${TONE_TEXT[gTone]}`}>{label}</div>
-      </div>
-      <div className={`border ${TONE_BORDER[sTone]} bg-panel rounded-2xl p-4 flex flex-col justify-center shadow-xl shadow-black/5 dark:shadow-black/40`}>
-        {children}
-        <p className="text-[11px] text-mist mt-2 leading-relaxed">{note}</p>
-        <div className="text-[11px] text-signal-pass mt-2">More detail →</div>
-      </div>
-    </motion.div>
-  );
 }
 
 function Chip({ children, tone }: { children: React.ReactNode; tone?: Tone }) {

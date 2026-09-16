@@ -4,11 +4,15 @@ import { normalizeReportDetail, normalizeReportsPage } from "@/lib/api-normalize
 import type { ApiProject } from "@/lib/api-types";
 import type { ProjectBoardItem } from "@/components/ProjectsBoard";
 
-const LIST_LIMIT = 20;
+const LIST_LIMIT = 50;
 const HYDRATE_LIMIT = 12;
 
 export async function loadProjectBoardItems(projects: ApiProject[]): Promise<ProjectBoardItem[]> {
   return Promise.all(projects.map(loadOne));
+}
+
+export async function loadProjectReports(project: ApiProject): Promise<ProjectBoardItem> {
+  return loadOne(project);
 }
 
 async function loadOne(project: ApiProject): Promise<ProjectBoardItem> {

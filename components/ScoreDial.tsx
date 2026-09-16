@@ -29,12 +29,13 @@ export default function ScoreDial({
 }) {
   const theme = useTheme();
   const c = THEME_COLORS[theme];
+  const shown = Math.max(1, Math.round(score));
   const stroke = 10;
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(100, score)) / 100;
+  const pct = Math.max(0, Math.min(100, shown)) / 100;
   const dash = circumference * pct;
-  const color = bandColor(score, c);
+  const color = bandColor(shown, c);
   const reduced = useReducedMotion();
 
   return (
@@ -57,7 +58,7 @@ export default function ScoreDial({
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="font-display text-4xl font-bold tabular-nums" style={{ color }}>
-            {Math.round(score)}
+            {shown}
           </span>
           <span className="text-[10px] uppercase tracking-widest text-mist mt-0.5">/ 100</span>
         </div>
@@ -65,7 +66,7 @@ export default function ScoreDial({
       <div className="text-center">
         <div className="text-xs uppercase tracking-widest text-mist">{label}</div>
         <div className="text-sm font-medium mt-0.5" style={{ color }}>
-          {bandLabel(score)}
+          {bandLabel(shown)}
         </div>
       </div>
     </div>
