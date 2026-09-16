@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import { apiGet, backendFetch } from "@/lib/backend";
+import { apiGet, backendFetchOptional } from "@/lib/backend";
 import { detailView } from "@/lib/report-map";
 import { parseUserReport } from "@/lib/user-report";
 import type { ApiProject, ApiReportDetail } from "@/lib/api-types";
@@ -31,7 +31,7 @@ export default async function ReportDetailedQualityPage({
   const dashboard = parseUserReport(report.reportJson);
   if (!dashboard) notFound();
 
-  const project = await backendFetch<ApiProject>(`/projects/${report.projectId}`).catch(() => null);
+  const project = await backendFetchOptional<ApiProject>(`/projects/${report.projectId}`);
 
   return (
     <PageEnter>

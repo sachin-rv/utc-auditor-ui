@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { backendFetch, BackendError } from "@/lib/backend";
+import { backendFetch, BackendError, isNextInterrupt } from "@/lib/backend";
 import { normalizeCreatedProject, normalizeProject } from "@/lib/api-normalize";
 import type {
   ApiClient,
@@ -13,6 +13,7 @@ import type {
 } from "@/lib/api-types";
 
 function fail(e: unknown, fallback: string) {
+  if (isNextInterrupt(e)) throw e;
   return { ok: false as const, error: e instanceof BackendError ? e.message : fallback };
 }
 

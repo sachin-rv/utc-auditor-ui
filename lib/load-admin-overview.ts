@@ -1,4 +1,4 @@
-import { backendFetch } from "@/lib/backend";
+import { backendFetch, isNextInterrupt } from "@/lib/backend";
 import { normalizeProjects, normalizeReportsPage } from "@/lib/api-normalize";
 import type { ApiProject } from "@/lib/api-types";
 
@@ -23,7 +23,8 @@ export async function loadAdminOverview(): Promise<AdminOverviewData> {
   let projects: ApiProject[] = [];
   try {
     projects = normalizeProjects(await backendFetch<unknown>("/projects"));
-  } catch {
+  } catch (e) {
+    if (isNextInterrupt(e)) throw e;
     projects = [];
   }
 
@@ -47,7 +48,8 @@ export async function loadAdminOverview(): Promise<AdminOverviewData> {
             passed: status === "pass" || status === "success" || (typeof score === "number" && score >= 80),
           } satisfies OverviewReportPoint;
         });
-      } catch {
+      } catch (e) {
+        if (isNextInterrupt(e)) throw e;
         return [] as OverviewReportPoint[];
       }
     })

@@ -76,9 +76,18 @@ export async function backendFetch<T>(path: string, init?: RequestInit): Promise
   });
   const body = await parseJson(res);
   if (!res.ok) {
+    if (res.status === 401) {
+      redirect("/api/auth/expired");
+    }
     throw new BackendError(res.status, messageFromBody(body, res.statusText), body);
   }
   return body as T;
+}
+
+export function isNextInterrupt(e: unknown): boolean {
+  if (!e || typeof e !== "object" || !("digest" in e)) return false;
+  const digest = String((e as { digest?: unknown }).digest ?? "");
+  return digest.startsWith("NEXT_REDIRECT") || digest.startsWith("NEXT_NOT_FOUND");
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
@@ -86,10 +95,18 @@ export async function apiGet<T>(path: string): Promise<T> {
     return await backendFetch<T>(path);
   } catch (e) {
     if (e instanceof BackendError) {
-      if (e.status === 401) redirect("/login");
-      if (e.status === 403) redirect("/dashboard");
+      if (e.status === 401) redirect("/api/auth/expired");
       if (e.status === 404) notFound();
     }
     throw e;
+  }
+}
+
+export async function backendFetchOptional<T>(path: string, init?: RequestInit): Promise<T | null> {
+  try {
+    return await backendFetch<T>(path, init);
+  } catch (e) {
+    if (isNextInterrupt(e)) throw e;
+    return null;
   }
 }

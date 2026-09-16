@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { apiGet, backendFetch } from "@/lib/backend";
+import { apiGet, backendFetchOptional, isNextInterrupt } from "@/lib/backend";
 import { detailView } from "@/lib/report-map";
 import { loadProjectReports } from "@/lib/load-project-reports";
 import type { ApiProject, ApiReportDetail } from "@/lib/api-types";
@@ -19,15 +19,20 @@ export default async function ReportDetailPage({
   const report = await apiGet<ApiReportDetail>(`/reports/${params.reportId}`);
   if (report.clientId !== params.clientId) notFound();
 
-  const project = await backendFetch<ApiProject>(`/projects/${report.projectId}`).catch(() => null);
+  const project = await backendFetchOptional<ApiProject>(`/projects/${report.projectId}`);
   const view = detailView(report);
-  const history = await loadProjectReports({
-    id: report.projectId,
-    clientId: report.clientId,
-    name: project?.name ?? "Project",
-    slug: project?.slug ?? "",
-    status: project?.status ?? "active",
-  }).catch(() => null);
+  let history = null;
+  try {
+    history = await loadProjectReports({
+      id: report.projectId,
+      clientId: report.clientId,
+      name: project?.name ?? "Project",
+      slug: project?.slug ?? "",
+      status: project?.status ?? "active",
+    });
+  } catch (e) {
+    if (isNextInterrupt(e)) throw e;
+  }
 
   return (
     <>

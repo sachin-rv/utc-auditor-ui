@@ -1,4 +1,4 @@
-import { apiGet } from "@/lib/backend";
+import { apiGet, isNextInterrupt } from "@/lib/backend";
 import { listRowFromApi } from "@/lib/report-map";
 import { normalizeReportDetail, normalizeReportsPage } from "@/lib/api-normalize";
 import type { ApiProject, ApiReportsPage } from "@/lib/api-types";
@@ -28,7 +28,8 @@ async function loadOne(project: ApiProject): Promise<ProjectBoardItem> {
       try {
         const detail = await apiGet<unknown>(`/reports/${item.id}`);
         return normalizeReportDetail(detail) ?? item;
-      } catch {
+      } catch (e) {
+        if (isNextInterrupt(e)) throw e;
         return item;
       }
     })

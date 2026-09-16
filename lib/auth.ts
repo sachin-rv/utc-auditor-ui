@@ -1,34 +1,22 @@
 import { cookies } from "next/headers";
-import type { UserRole } from "./api-types";
 import { SESSION_COOKIE_NAME as SESSION_COOKIE } from "./constants";
+import {
+  decodeSession,
+  encodeSession,
+  isAccessTokenExpired,
+  type Session,
+} from "./session-token";
 
-export interface Session {
-  accessToken: string;
-  userId: string;
-  role: UserRole;
-  clientId?: string;
-  name: string;
-  email: string;
-}
-
-export function encodeSession(session: Session): string {
-  return Buffer.from(JSON.stringify(session)).toString("base64url");
-}
-
-export function decodeSession(token: string): Session | null {
-  try {
-    const parsed = JSON.parse(Buffer.from(token, "base64url").toString("utf-8")) as Session;
-    if (!parsed?.accessToken || !parsed.role) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
+export type { Session } from "./session-token";
+export { decodeSession, encodeSession, isAccessTokenExpired } from "./session-token";
 
 export function getSession(): Session | null {
   const token = cookies().get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  return decodeSession(token);
+  const session = decodeSession(token);
+  if (!session) return null;
+  if (isAccessTokenExpired(session.accessToken)) return null;
+  return session;
 }
 
 export function dashboardHome(session: Session) {
