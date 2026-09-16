@@ -194,7 +194,6 @@ export default function ReportView({
           <div className="flex items-center gap-3">
             <h1 className="font-display text-3xl font-bold">{projectName}</h1>
             <CopyLinkButton />
-            <StatusPill status={view.status} />
           </div>
           <div className="text-sm text-mist mt-1">{fmtDateTime(view.timestamp)}</div>
           {history.length > 0 && (
