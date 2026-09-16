@@ -22,6 +22,7 @@ export default function CreateClientButton() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
   const [contactEmail, setContactEmail] = useState("");
   const [withUser, setWithUser] = useState(false);
   const [userName, setUserName] = useState("");
@@ -34,6 +35,7 @@ export default function CreateClientButton() {
   function reset() {
     setName("");
     setSlug("");
+    setSlugTouched(false);
     setContactEmail("");
     setWithUser(false);
     setUserName("");
@@ -82,10 +84,21 @@ export default function CreateClientButton() {
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
-                setSlug(slugify(e.target.value));
+                if (!slugTouched) setSlug(slugify(e.target.value));
               }}
               className={inputClass}
               placeholder="Enter your Organization Name"
+            />
+          </Field>
+          <Field label="Slug">
+            <input
+              value={slug}
+              onChange={(e) => {
+                setSlugTouched(true);
+                setSlug(e.target.value);
+              }}
+              className={inputClass}
+              placeholder="organization-name"
             />
           </Field>
           <Field label="Contact email (Optional)">
