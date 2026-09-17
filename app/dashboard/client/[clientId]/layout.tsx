@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { apiGet } from "@/lib/backend";
 import { normalizeClient, normalizeProjects } from "@/lib/api-normalize";
 import ClientWorkspaceShell from "@/components/ClientWorkspaceShell";
+import LiveRefresh from "@/components/LiveRefresh";
 
 export default async function ClientWorkspaceLayout({
   children,
@@ -39,6 +40,7 @@ export default async function ClientWorkspaceLayout({
       isAdmin={isAdmin}
       projects={projects}
     >
+      <LiveRefresh intervalMs={30000} />
       {children}
     </ClientWorkspaceShell>
   );

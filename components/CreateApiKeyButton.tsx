@@ -67,6 +67,7 @@ export default function CreateApiKeyButton({ projectId, projectName }: { project
             : "Creates another active key without rotating the current one."
         }
         widthClass="max-w-md"
+        id="modal-api-key"
       >
         {created ? (
           <ApiKeyReveal

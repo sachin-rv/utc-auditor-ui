@@ -55,7 +55,7 @@ export default function ProjectCard({
   const reduced = useReducedMotion();
 
   return (
-    <section className={`${cardClass} overflow-hidden`}>
+    <section id={`project-card-${project.id}`} className={`${cardClass} overflow-hidden`}>
       <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-panel2/40 gap-4">
         <div className="text-left min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -127,7 +127,7 @@ export default function ProjectCard({
               <div className="px-8 py-16 text-center text-mist text-sm">No audit reports submitted for this project yet.</div>
             ) : (
               <>
-                <div className="grid lg:grid-cols-[auto_minmax(12rem,0.9fr)_minmax(16rem,1.35fr)] gap-8 px-6 py-6 border-b border-line">
+                <div id={`project-metrics-${project.id}`} className="grid lg:grid-cols-[auto_minmax(12rem,0.9fr)_minmax(16rem,1.35fr)] gap-8 px-6 py-6 border-b border-line">
                   <ScoreDial
                     score={latest?.overallScore ?? 1}
                     label={latest?.qualityGrade ? `Grade ${latest.qualityGrade}` : "Quality score"}
@@ -164,7 +164,7 @@ export default function ProjectCard({
                     }))}
                   />
                 </div>
-                <div className="px-6 py-4">
+                <div id={`project-history-${project.id}`} className="px-6 py-4">
                   <div className="text-xs uppercase tracking-widest text-mist mb-3">
                     Report history ({total})
                     {reports.length > 1 ? ` · avg quality ${avgScore}` : ""}

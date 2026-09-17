@@ -66,7 +66,7 @@ export default function ProjectsBoard({
   ];
 
   return (
-    <div>
+    <div id="projects-board">
       <div className="flex flex-wrap items-center gap-2 mb-5">
         <div className="relative flex-1 min-w-[14rem]">
           <svg

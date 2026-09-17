@@ -76,7 +76,7 @@ export default function CreateClientButton() {
       >
         Create client
       </button>
-      <Modal open={open} onClose={() => setOpen(false)} title="Create client" widthClass="max-w-lg">
+      <Modal open={open} onClose={() => setOpen(false)} title="Create client" widthClass="max-w-lg" id="modal-create-client">
         <form onSubmit={onSubmit} className="space-y-3.5">
           <Field label="Organization name">
             <input

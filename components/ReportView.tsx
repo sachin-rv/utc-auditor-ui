@@ -175,7 +175,7 @@ export default function ReportView({
 
   return (
     <PageEnter>
-    <div>
+    <div id="report-view">
       <Link
         href={
           view.projectId
@@ -236,9 +236,10 @@ export default function ReportView({
             exit={reduced ? undefined : { opacity: 0, y: -6 }}
             transition={{ duration: reduced ? 0 : 0.25 }}
             className="space-y-3"
+            id="report-overview"
           >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
-              <section>
+              <section id="report-summary">
                 <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-1.5">Summary</div>
                 <motion.div
                   className="grid grid-cols-3 gap-2"
@@ -259,7 +260,7 @@ export default function ReportView({
                 </motion.div>
               </section>
 
-              <section>
+              <section id="report-health">
                 <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-1.5">Health indicators</div>
                 <motion.div
                   className="grid grid-cols-3 gap-2"
@@ -281,7 +282,7 @@ export default function ReportView({
               </section>
             </div>
 
-            <div className={`${cardClass} px-4 py-3`}>
+            <div id="report-coverage" className={`${cardClass} px-4 py-3`}>
               <div className="text-[10px] uppercase tracking-widest text-mist mb-2">Coverage snapshot</div>
               <CoverageBars coverage={view.coverage} compact />
             </div>
@@ -301,7 +302,7 @@ export default function ReportView({
               </Link>
             )}
 
-            <div className={`w-full ${cardClass} overflow-hidden`}>
+            <div id="report-run-details" className={`w-full ${cardClass} overflow-hidden`}>
               <button
                 type="button"
                 onClick={() => {
@@ -349,6 +350,7 @@ export default function ReportView({
 
         {tab === "findings" && (
           <motion.section
+            id="report-findings"
             key="findings"
             initial={reduced ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}

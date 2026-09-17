@@ -23,7 +23,7 @@ export default function LogoutButton() {
         Sign out
       </button>
 
-      <Modal open={confirming} onClose={() => setConfirming(false)} title="Sign out?" widthClass="max-w-xs">
+      <Modal open={confirming} onClose={() => setConfirming(false)} title="Sign out?" widthClass="max-w-xs" id="modal-logout">
         <p className="text-sm text-mist mb-5">You'll need to sign back in to view the audit console.</p>
         <div className="flex gap-2 justify-end">
           <button onClick={() => setConfirming(false)} className={btnSecondaryClass}>

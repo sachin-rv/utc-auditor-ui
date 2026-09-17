@@ -12,7 +12,7 @@ import type {
   Tone,
   UserReportView,
 } from "@/lib/user-report";
-import { countTone, failureHeadline, gradeTone, scoreTone } from "@/lib/user-report";
+import { countTone, gradeTone, scoreTone } from "@/lib/user-report";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { btnGhostClass, chipClass, chipIdleClass, fieldCompactClass, fieldInlineClass } from "@/lib/ui";
 import { listContainer, listItem } from "@/components/PageEnter";
@@ -178,8 +178,9 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
     : [];
 
   return (
-    <div className="space-y-4">
+    <div id="audit-details-dashboard" className="space-y-4">
       <motion.div
+        id="audit-metrics"
         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3"
         variants={reduced ? undefined : listContainer}
         initial={reduced ? false : "hidden"}
@@ -188,6 +189,7 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
         {metrics.map((m) => (
           <motion.button
             key={m.label}
+            id={`audit-metric-${m.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
             type="button"
             onClick={() => (m.clickable ? openMetric(m.label, m.section) : go(m.section))}
             variants={reduced ? undefined : listItem}
@@ -208,7 +210,7 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
       </motion.div>
 
       {data.quality.byStrategy.length > 0 && (
-        <div className="pt-4">
+        <div id="audit-strategies" className="pt-4">
           <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-mist mb-3">
             Strategies deck · {data.quality.byStrategy.length} checks · {strategyErrors} errors · {strategyWarnings}{" "}
             warnings
@@ -222,6 +224,7 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
             {data.quality.byStrategy.map((s) => (
               <motion.button
                 key={s.strategy}
+                id={`audit-strategy-${s.strategy}`}
                 type="button"
                 onClick={() => openStrategy(s)}
                 variants={reduced ? undefined : listItem}
@@ -229,12 +232,14 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
                 className="text-left border border-line bg-panel rounded-2xl p-4 shadow-xl shadow-black/5 dark:shadow-black/40 hover:border-signal-pass/40 transition"
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <div className="text-sm font-medium">{s.title}</div>
+                  <div className="text-sm font-medium truncate">{s.title}</div>
                   <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full ${TONE_BG[countTone(s.warnings + s.errors)]}`}>
                     {s.total}
                   </span>
                 </div>
-                <p className="text-xs text-mist leading-relaxed">{s.blurb}</p>
+                <div className="text-[11px] font-mono text-mist">
+                  {s.errors} errors · {s.warnings} warnings
+                </div>
                 <div className="text-[11px] text-signal-pass mt-2">Open findings →</div>
               </motion.button>
             ))}
@@ -252,7 +257,7 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
       </div>
 
       <div className="space-y-3 pt-4">
-        <div ref={refs.static}>
+        <div id="audit-section-static" ref={refs.static}>
           <Accordion
             title="Static analysis issues"
             summary={`${staticCounts.error} errors, ${staticCounts.warning} warnings, ${staticCounts.info} info`}
@@ -269,7 +274,7 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
             />
           </Accordion>
         </div>
-        <div ref={refs.failed}>
+        <div id="audit-section-failed" ref={refs.failed}>
           <Accordion
             title="Failed & pending tests"
             summary={`${data.run.failed} failing · ${data.run.pending} pending · ${failedFiles} files`}
@@ -281,7 +286,7 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
             <FailedTable cases={data.run.failedCases} onSelect={(item) => setDetail({ type: "failed", item })} />
           </Accordion>
         </div>
-        <div ref={refs.files}>
+        <div id="audit-section-files" ref={refs.files}>
           <Accordion
             title="Test files"
             summary={`${data.run.testFiles.length} files · ${data.run.passed} passed · ${data.run.failed} failed${data.run.success ? "" : " · suite failed"}`}
@@ -294,7 +299,7 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
             <TestFilesTable files={data.run.testFiles} onSelect={(file) => setDetail({ type: "file", file })} />
           </Accordion>
         </div>
-        <div ref={refs.cms}>
+        <div id="audit-section-cms" ref={refs.cms}>
           <Accordion
             title="CMS migration findings"
             summary={`${data.cms.fromCms} → ${data.cms.toCms} · ${data.cms.stats.legacyIssues} legacy · ${data.cms.stats.gapIssues} gap · ${data.cms.stats.progressSignals} progress`}
@@ -314,7 +319,7 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
             )}
           </Accordion>
         </div>
-        <div ref={refs.missing}>
+        <div id="audit-section-missing" ref={refs.missing}>
           <Accordion
             title="Missing tests / recommendations"
             summary={`${data.completeness.stats.untested} missing · ${data.completeness.stats.weakCoverage} weak coverage · ${data.completeness.stats.perfRisks} perf/loading · ${data.completeness.stats.highPriority} high priority`}
@@ -326,7 +331,7 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
             <RecommendationsList items={data.completeness.recommendations} onSelect={(rec) => setDetail({ type: "rec", rec })} />
           </Accordion>
         </div>
-        <div ref={refs.coverage}>
+        <div id="audit-section-coverage" ref={refs.coverage}>
           <Accordion
             title="Coverage"
             summary={`Avg ${data.coverageTotals.statements}% stmts · ${data.coverageTotals.branches}% branches · ${data.coverageTotals.functions}% funcs · ${data.coverageTotals.lines}% lines`}
@@ -413,7 +418,14 @@ function DetailModal({
             : undefined;
 
   return (
-    <Modal open={!!detail} onClose={onClose} title={title} subtitle={subtitle} widthClass="max-w-6xl">
+    <Modal
+      open={!!detail}
+      onClose={onClose}
+      title={title}
+      subtitle={subtitle}
+      widthClass="max-w-6xl"
+      id={detail ? `modal-audit-${detail.type}` : "modal-audit-detail"}
+    >
       {detail?.type === "issue" && <IssueDetail issue={detail.issue} />}
       {detail?.type === "strategy" && (
         <StrategyDetail
@@ -456,6 +468,7 @@ function IssueDetail({ issue }: { issue: StaticIssue }) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <SeverityChip severity={issue.severity} />
+        {issue.rule ? <Chip>{issue.rule}</Chip> : null}
         {issue.strategy ? <Chip>{issue.strategy}</Chip> : null}
         {issue.category ? <Chip>{issue.category}</Chip> : null}
         {issue.line != null ? <Chip>line {issue.line}</Chip> : null}
@@ -500,7 +513,7 @@ function StrategyDetail({
                 <SeverityChip severity={issue.severity} />
                 <span className="font-mono text-[11px] text-mist truncate">{issue.fileShort}</span>
               </div>
-              <div className="text-sm line-clamp-2">{issue.message}</div>
+              <div className="text-sm truncate">{issue.rule || issue.message}</div>
             </button>
           ))}
         </div>
@@ -980,12 +993,9 @@ function IssuesTable({
         <table className="w-full table-fixed text-left text-xs">
           <thead className="text-[10px] uppercase tracking-widest text-mist">
             <tr className="border-b border-line">
-              <th className="py-2 pr-3 font-medium w-[22%]">File</th>
-              <th className="py-2 pr-3 font-medium w-14">Line</th>
-              <th className="py-2 pr-3 font-medium w-[16%]">Strategy</th>
-              <th className="py-2 pr-3 font-medium w-[16%]">Rule</th>
+              <th className="py-2 pr-3 font-medium w-[28%]">File</th>
               <th className="py-2 pr-3 font-medium w-24">Severity</th>
-              <th className="py-2 font-medium">Message</th>
+              <th className="py-2 font-medium">Summary</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -998,15 +1008,14 @@ function IssuesTable({
                 <td className="py-2.5 pr-3 font-mono text-mist truncate" title={i.file}>
                   {i.fileShort}
                 </td>
-                <td className="py-2.5 pr-3 font-mono">{i.line ?? "—"}</td>
-                <td className="py-2.5 pr-3 font-mono text-mist truncate">{strategyTitles[i.strategy] ?? i.strategy}</td>
-                <td className="py-2.5 pr-3 font-mono truncate">{i.rule}</td>
                 <td className="py-2.5 pr-3">
                   <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${TONE_BG[i.severity === "error" ? "fail" : i.severity === "warning" ? "warn" : "neutral"]}`}>
                     {i.severity}
                   </span>
                 </td>
-                <td className="py-2.5 text-sm break-words">{i.message}</td>
+                <td className="py-2.5 text-sm truncate" title={i.message}>
+                  {i.rule || i.message}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -1072,9 +1081,7 @@ function TestFilesTable({
           <thead className="text-[10px] uppercase tracking-widest text-mist">
             <tr className="border-b border-line">
               <th className="py-2 pr-3 font-medium">File</th>
-              <th className="py-2 pr-3 font-medium w-20">Passed</th>
-              <th className="py-2 pr-3 font-medium w-20">Failed</th>
-              <th className="py-2 font-medium w-24">Duration</th>
+              <th className="py-2 font-medium w-24">Failed</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -1087,9 +1094,7 @@ function TestFilesTable({
                 <td className="py-2.5 pr-3 font-mono truncate" title={f.file}>
                   {f.fileShort}
                 </td>
-                <td className="py-2.5 pr-3 font-mono text-signal-pass">{f.passing}</td>
-                <td className={`py-2.5 pr-3 font-mono ${f.failing ? "text-signal-fail" : "text-mist"}`}>{f.failing}</td>
-                <td className="py-2.5 font-mono text-mist">{f.duration}ms</td>
+                <td className={`py-2.5 font-mono ${f.failing ? "text-signal-fail" : "text-mist"}`}>{f.failing}</td>
               </tr>
             ))}
           </tbody>
@@ -1196,9 +1201,6 @@ function FailedTable({
               <span className="text-sm truncate">{c.name}</span>
             </div>
             <div className="text-[11px] font-mono text-mist mt-0.5 truncate">{c.fileShort}</div>
-            {c.failureMessages[0] ? (
-              <div className="text-xs text-mist mt-1 line-clamp-1">{failureHeadline(c.failureMessages[0])}</div>
-            ) : null}
           </button>
         ))}
       </div>
@@ -1324,14 +1326,10 @@ function RecommendationsList({
                 onClick={() => onSelect(item)}
                 className="w-full text-left border border-line rounded-2xl p-3 hover:border-signal-pass/40 hover:bg-panel2/40 transition-colors"
               >
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className="font-mono text-xs">{item.sourceShort}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs truncate">{item.sourceShort}</span>
                   <Chip tone={item.priority === "high" ? "fail" : "warn"}>{item.priority}</Chip>
-                  <Chip>{item.tag}</Chip>
-                  <Chip>{item.kind}</Chip>
                 </div>
-                <p className="text-sm mt-1 line-clamp-2">{item.why}</p>
-                <p className="text-xs text-mist mt-1.5 line-clamp-2">{item.suggest}</p>
               </button>
             ))}
           </div>
@@ -1407,10 +1405,7 @@ function CoverageTable({
           <thead className="text-[10px] uppercase tracking-widest text-mist">
             <tr className="border-b border-line">
               <th className="py-2 pr-3 font-medium">File</th>
-              <th className="py-2 pr-3 font-medium w-16">Stmts</th>
-              <th className="py-2 pr-3 font-medium w-16">Branch</th>
-              <th className="py-2 pr-3 font-medium w-16">Funcs</th>
-              <th className="py-2 font-medium w-16">Lines</th>
+              <th className="py-2 font-medium w-20">Lines</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -1423,9 +1418,6 @@ function CoverageTable({
                 <td className="py-2 pr-3 font-mono truncate" title={f.file}>
                   {f.fileShort}
                 </td>
-                <td className={`py-2 pr-3 font-mono ${pctClass(f.statements)}`}>{Math.round(f.statements)}%</td>
-                <td className={`py-2 pr-3 font-mono ${pctClass(f.branches)}`}>{Math.round(f.branches)}%</td>
-                <td className={`py-2 pr-3 font-mono ${pctClass(f.functions)}`}>{Math.round(f.functions)}%</td>
                 <td className={`py-2 font-mono ${pctClass(f.lines)}`}>{Math.round(f.lines)}%</td>
               </tr>
             ))}
