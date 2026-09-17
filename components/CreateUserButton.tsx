@@ -84,6 +84,7 @@ export default function CreateUserButton({
         }}
         title="Create user"
         widthClass="max-w-lg"
+        id="modal-create-user"
       >
         {created ? (
           <div className="space-y-3">

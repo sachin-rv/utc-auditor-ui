@@ -167,7 +167,7 @@ export default function AdminOverview({
   }
 
   return (
-    <div className="space-y-6">
+    <div id="admin-overview" className="space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <div>
           <div className="text-xs font-mono uppercase tracking-widest text-signal-pass mb-1">Operations</div>
@@ -185,7 +185,7 @@ export default function AdminOverview({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div id="admin-kpis" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         <KpiCard
           icon={<Building2 size={18} />}
           label="Clients"
@@ -260,7 +260,7 @@ export default function AdminOverview({
         <ClientListPanel clients={listClients} highlightId={selectedId} />
       </div>
 
-      <div className={`${cardClass} p-5 lg:p-6`}>
+      <div id="admin-charts" className={`${cardClass} p-5 lg:p-6`}>
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 mb-5">
           <div className="flex items-center gap-2">
             {(

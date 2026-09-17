@@ -18,6 +18,14 @@ import { listContainer, listItem } from "@/components/PageEnter";
 
 const SEVERITY_ORDER: Severity[] = ["critical", "high", "medium", "low", "info"];
 
+function elementId(prefix: string, value: string) {
+  const slug = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `${prefix}-${slug || "other"}`;
+}
+
 export default function FindingsPanel({ findings }: { findings: Finding[] }) {
   const [activeSeverities, setActiveSeverities] = useState<Set<Severity>>(new Set());
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -76,20 +84,21 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
 
   if (findings.length === 0) {
     return (
-      <div className={`${emptyStateClass} text-signal-pass`}>
+      <div id="findings-panel" className={`${emptyStateClass} text-signal-pass`}>
         No issues that need attention were found in this run.
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-1.5 mb-4">
+    <div id="findings-panel">
+      <div id="findings-filters" className="flex flex-wrap items-center gap-1.5 mb-4">
         {SEVERITY_ORDER.filter((s) => counts[s] > 0).map((s) => {
           const active = activeSeverities.has(s);
           return (
             <button
               key={s}
+              id={`findings-filter-${s}`}
               onClick={() => toggleSeverity(s)}
               className={`${chipClass} ${
                 active ? chipActiveClass : chipIdleClass
@@ -126,7 +135,12 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
           {Object.entries(byCategory).map(([category, categoryFindings]) => {
             const isCollapsed = collapsed.has(category);
             return (
-              <motion.div key={category} className={`${cardClass} overflow-hidden`} variants={reduced ? undefined : listItem}>
+              <motion.div
+                key={category}
+                id={elementId("findings-category", category)}
+                className={`${cardClass} overflow-hidden`}
+                variants={reduced ? undefined : listItem}
+              >
                 <button
                   onClick={() => toggleCollapsed(category)}
                   className="w-full px-5 py-2.5 bg-panel2/40 border-b border-line text-sm font-medium flex items-center justify-between hover:bg-panel2/70 transition-colors"
@@ -151,23 +165,19 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
                     {categoryFindings.map((f) => (
                       <button
                         key={f.id}
+                        id={elementId("finding-row", f.id)}
+                        type="button"
                         onClick={() => setSelected(f)}
                         className="w-full text-left px-5 py-3 flex items-start justify-between gap-4 hover:bg-panel2/40 transition-colors"
                       >
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium">{f.title}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-sm font-medium truncate">{f.title}</span>
                             <SeverityBadge severity={f.severity} />
                           </div>
-                          <div className="text-sm text-mist">{f.detail || f.title}</div>
-                          {f.file && (
-                            <div className="text-xs text-mist mt-1">
-                              Area: {humanizeFileLabel(f.file)}
-                            </div>
-                          )}
-                          {f.recommendation ? (
-                            <div className="text-xs text-signal-info mt-1.5">→ {f.recommendation}</div>
-                          ) : null}
+                          <div className="text-xs text-mist truncate mt-1">
+                            {f.file ? humanizeFileLabel(f.file) : f.category}
+                          </div>
                         </div>
                       </button>
                     ))}
@@ -179,25 +189,41 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
         </motion.div>
       )}
 
-      <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.title} widthClass="max-w-lg">
+      <Modal
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected?.title}
+        widthClass="max-w-4xl"
+        id="modal-finding-detail"
+      >
         {selected && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
+          <div id="finding-detail-body" className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
               <SeverityBadge severity={selected.severity} />
               <span className="text-xs text-mist uppercase tracking-wider">{selected.category}</span>
+              {selected.ruleId ? (
+                <span className="text-[11px] font-mono text-mist border border-line rounded-full px-2 py-0.5">
+                  {selected.ruleId}
+                  {selected.ruleVersion ? ` · ${selected.ruleVersion}` : ""}
+                </span>
+              ) : null}
             </div>
-            <div className="text-sm mb-3">{selected.detail || selected.title}</div>
+            <div className="text-sm leading-relaxed whitespace-pre-wrap">{selected.detail || selected.title}</div>
             {selected.file && (
-              <div className="text-xs text-mist bg-panel2 border border-line rounded-xl px-3 py-2 mb-3">
-                Area: {humanizeFileLabel(selected.file)}
+              <div className="text-xs bg-panel2 border border-line rounded-xl px-3 py-2">
+                <div className="uppercase tracking-widest text-mist mb-1">Area</div>
+                <div>{humanizeFileLabel(selected.file)}</div>
+                <div className="font-mono text-[11px] text-mist break-all mt-1">{selected.file}</div>
               </div>
             )}
             {selected.recommendation ? (
-              <div className="border-l-2 border-signal-info/40 pl-3 text-sm text-signal-info mb-4">
-                {selected.recommendation}
+              <div className="border-l-2 border-signal-info/40 pl-3">
+                <div className="text-[10px] uppercase tracking-widest text-mist mb-1">What to do</div>
+                <div className="text-sm text-signal-info">{selected.recommendation}</div>
               </div>
             ) : null}
             <button
+              id="finding-copy-button"
               onClick={() => copyFinding(selected)}
               className={btnGhostClass}
             >

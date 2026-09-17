@@ -69,8 +69,8 @@ export default function ClientWorkspaceShell({
 
   return (
     <WorkspaceCtx.Provider value={ctx}>
-      <div className="flex-1 flex flex-col md:flex-row min-h-0 w-full">
-        <aside className="shrink-0 border-b md:border-b-0 md:border-r border-line bg-panel/90 md:sticky md:top-16 md:self-start md:h-[calc(100vh-4rem)] md:w-64 lg:w-72 md:overflow-y-auto">
+      <div id="workspace-shell" className="flex-1 flex flex-col md:flex-row min-h-0 w-full">
+        <aside id="workspace-sidebar" className="shrink-0 border-b md:border-b-0 md:border-r border-line bg-panel/90 md:sticky md:top-16 md:self-start md:h-[calc(100vh-4rem)] md:w-64 lg:w-72 md:overflow-y-auto">
           <div className="px-4 py-4 md:px-5 md:py-5">
             <div className="text-[10px] font-mono uppercase tracking-widest text-mist mb-1">Workspace</div>
             <div className="font-display font-semibold text-chalk truncate">{clientName}</div>
@@ -112,7 +112,7 @@ export default function ClientWorkspaceShell({
           </nav>
         </aside>
 
-        <section className="flex-1 min-w-0 px-5 sm:px-8 py-6">{children}</section>
+        <section id="workspace-main" className="flex-1 min-w-0 px-5 sm:px-8 py-6">{children}</section>
       </div>
     </WorkspaceCtx.Provider>
   );

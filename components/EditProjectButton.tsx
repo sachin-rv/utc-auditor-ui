@@ -212,7 +212,7 @@ export default function EditProjectButton({ clientId, project }: { clientId: str
         Edit
       </button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Edit project" subtitle="Update project details and audit environments." widthClass="max-w-4xl">
+      <Modal open={open} onClose={() => setOpen(false)} title="Edit project" subtitle="Update project details and audit environments." widthClass="max-w-4xl" id="modal-edit-project">
         <form onSubmit={onSubmit} noValidate className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="project-name" label="Project name" error={errors.name}>

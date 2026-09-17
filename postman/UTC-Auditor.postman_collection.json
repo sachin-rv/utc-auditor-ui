@@ -1,0 +1,596 @@
+{
+  "info": {
+    "_postman_id": "utc-auditor-crud-collection",
+    "name": "UTC Auditor API",
+    "description": "CRUD collection for UTC Auditor.\n\n**Two bases**\n- `{{backendUrl}}/api` — Nest backend (source of truth). Default `http://localhost:3000`.\n- `{{uiUrl}}/api` — Next.js BFF auth only. Default `http://localhost:3001`.\n\n**Auth**\n1. Run **Auth (Backend) → Login** (or Setup, then Login).\n2. Tests copy `accessToken` into the environment.\n3. Remaining backend requests send `Authorization: Bearer {{accessToken}}`.\n\nCreate requests also save `clientId`, `projectId`, `apiKey`, and `reportId` when the response includes them.\n\nEndpoints match `docs/API.md` and the UI server actions. Report ingest is included even though the dashboard does not call it.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "backendUrl", "value": "http://localhost:3000" },
+    { "key": "uiUrl", "value": "http://localhost:3001" }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "function unwrap(raw) {",
+          "  if (!raw || typeof raw !== 'object') return {};",
+          "  if (raw.id || raw._id) return raw;",
+          "  if (raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data)) {",
+          "    if (raw.data.id || raw.data._id) return raw.data;",
+          "    if (raw.data.client && (raw.data.client.id || raw.data.client._id)) return raw.data.client;",
+          "    if (raw.data.project && (raw.data.project.id || raw.data.project._id)) return raw.data.project;",
+          "    if (raw.data.user && (raw.data.user.id || raw.data.user._id)) return raw.data.user;",
+          "    if (raw.data.report && (raw.data.report.id || raw.data.report._id || raw.data.report.reportId)) return raw.data.report;",
+          "  }",
+          "  if (raw.client && (raw.client.id || raw.client._id)) return raw.client;",
+          "  if (raw.project && (raw.project.id || raw.project._id)) return raw.project;",
+          "  if (raw.user && (raw.user.id || raw.user._id)) return raw.user;",
+          "  if (raw.report && (raw.report.id || raw.report._id || raw.report.reportId)) return raw.report;",
+          "  return raw;",
+          "}",
+          "function entityId(raw) {",
+          "  const e = unwrap(raw);",
+          "  const id = e.id || e._id || e.reportId;",
+          "  return id ? String(id) : '';",
+          "}",
+          "pm.environment.set('_lastEntityId', '');",
+          "try {",
+          "  const json = pm.response.json();",
+          "  const id = entityId(json);",
+          "  if (id) pm.environment.set('_lastEntityId', id);",
+          "  if (json.accessToken) pm.environment.set('accessToken', json.accessToken);",
+          "  if (json.user && json.user.id) pm.environment.set('userId', String(json.user.id));",
+          "  if (json.plainKey) pm.environment.set('apiKey', json.plainKey);",
+          "  if (json.apiKey && json.apiKey.plainKey) pm.environment.set('apiKey', json.apiKey.plainKey);",
+          "  if (json.apiKey && (json.apiKey.id || json.apiKey._id)) pm.environment.set('apiKeyId', String(json.apiKey.id || json.apiKey._id));",
+          "} catch (e) {}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth (Next.js BFF)",
+      "description": "Browser-facing routes. Login/setup set the `utc_session` cookie. They do not take a JWT.",
+      "item": [
+        {
+          "name": "Get setup status",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{uiUrl}}/api/auth/setup-status",
+            "description": "Proxies to `GET /api/auth/setup-status` on the backend.\nSuccess: `{ setupRequired: boolean }`."
+          }
+        },
+        {
+          "name": "Setup first admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{adminName}}\",\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{uiUrl}}/api/auth/setup",
+            "description": "Creates the first admin when setup is required. Sets `utc_session`.\nSuccess: `{ role, name, clientId }`."
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{uiUrl}}/api/auth/login",
+            "description": "Signs in and sets `utc_session`. Does not return `accessToken` to the browser."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": "{{uiUrl}}/api/auth/logout",
+            "description": "Clears `utc_session`. No backend call. `{ ok: true }`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth (Backend)",
+      "description": "Hit Nest directly. Login here to populate `{{accessToken}}` for JWT-protected folders.",
+      "item": [
+        {
+          "name": "Get setup status",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{backendUrl}}/api/auth/setup-status"
+          }
+        },
+        {
+          "name": "Setup first admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Setup succeeded or setup already complete', function () {",
+                  "  pm.expect([200, 201, 400, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{adminName}}\",\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{backendUrl}}/api/auth/setup",
+            "description": "Creates the first admin. Response: `{ accessToken, user }`."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Logged in', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a('string');",
+                  "  pm.environment.set('accessToken', json.accessToken);",
+                  "  if (json.user && json.user.id) pm.environment.set('userId', String(json.user.id));",
+                  "  if (json.user && json.user.clientId) pm.environment.set('clientId', String(json.user.clientId));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{backendUrl}}/api/auth/login",
+            "description": "Saves `accessToken` (and `userId`) on the environment."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "description": "Admin CRUD used by the dashboard. The UI exposes create + list + get. There is no client update/delete call in this app.",
+      "item": [
+        {
+          "name": "List clients",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lists clients', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const list = Array.isArray(json) ? json : (json.clients || json.items || json.data || json.results || []);",
+                  "  if (list[0] && (list[0].id || list[0]._id) && !pm.environment.get('clientId')) {",
+                  "    pm.environment.set('clientId', String(list[0].id || list[0]._id));",
+                  "  }",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{backendUrl}}/api/clients"
+          }
+        },
+        {
+          "name": "Get client",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{backendUrl}}/api/clients/{{clientId}}"
+          }
+        },
+        {
+          "name": "Create client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Client created', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "const id = pm.environment.get('_lastEntityId');",
+                  "if (id) pm.environment.set('clientId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Health\",\n  \"slug\": \"acme-health\",\n  \"contactEmail\": \"ops@acme.example\"\n}"
+            },
+            "url": "{{backendUrl}}/api/clients",
+            "description": "Body: `{ name, slug, contactEmail?, user?: { email, password, name } }`."
+          }
+        },
+        {
+          "name": "Create client with first user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Client created', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "const id = pm.environment.get('_lastEntityId');",
+                  "if (id) pm.environment.set('clientId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Northwind Clinics\",\n  \"slug\": \"northwind-clinics\",\n  \"contactEmail\": \"it@northwind.example\",\n  \"user\": {\n    \"name\": \"Northwind Admin\",\n    \"email\": \"client@northwind.example\",\n    \"password\": \"ChangeMe123!\"\n  }\n}"
+            },
+            "url": "{{backendUrl}}/api/clients"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "The dashboard only creates users (`POST /users`). `clientId` is sent only when `role` is `client`.",
+      "item": [
+        {
+          "name": "Create admin user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('User created', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "const id = pm.environment.get('_lastEntityId');",
+                  "if (id) pm.environment.set('userId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Second Admin\",\n  \"email\": \"admin2@example.com\",\n  \"password\": \"ChangeMe123!\",\n  \"role\": \"admin\"\n}"
+            },
+            "url": "{{backendUrl}}/api/users"
+          }
+        },
+        {
+          "name": "Create client user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('User created', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "const id = pm.environment.get('_lastEntityId');",
+                  "if (id) pm.environment.set('userId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Reviewer\",\n  \"email\": \"reviewer@acme.example\",\n  \"password\": \"ChangeMe123!\",\n  \"role\": \"client\",\n  \"clientId\": \"{{clientId}}\"\n}"
+            },
+            "url": "{{backendUrl}}/api/users"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "List projects",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lists projects', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const list = Array.isArray(json) ? json : (json.projects || json.items || json.data || json.results || []);",
+                  "  if (list[0] && (list[0].id || list[0]._id) && !pm.environment.get('projectId')) {",
+                  "    pm.environment.set('projectId', String(list[0].id || list[0]._id));",
+                  "  }",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{backendUrl}}/api/projects",
+            "description": "Client users get tenant-scoped results. Admins get the overview sample source."
+          }
+        },
+        {
+          "name": "List projects for client",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{backendUrl}}/api/clients/{{clientId}}/projects"
+          }
+        },
+        {
+          "name": "Get project",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{backendUrl}}/api/projects/{{projectId}}"
+          }
+        },
+        {
+          "name": "Create project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Project created', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const id = pm.environment.get('_lastEntityId');",
+                  "if (id) pm.environment.set('projectId', id);",
+                  "if (json.apiKey && json.apiKey.plainKey) {",
+                  "  pm.environment.set('apiKey', json.apiKey.plainKey);",
+                  "  if (json.apiKey.id) pm.environment.set('apiKeyId', String(json.apiKey.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Patient Portal\",\n  \"slug\": \"patient-portal\",\n  \"repositoryUrl\": \"https://github.com/example/patient-portal\",\n  \"websiteUrl\": \"https://portal.acme.example\",\n  \"description\": \"Main patient-facing web app\",\n  \"apiKeyName\": \"ci-ingest\",\n  \"auditConfig\": [\n    {\n      \"envType\": \"development\",\n      \"branch\": \"main\",\n      \"schedule\": \"daily\",\n      \"minCoverageThreshold\": 80\n    },\n    {\n      \"envType\": \"production\",\n      \"branch\": \"release\",\n      \"schedule\": \"weekly\",\n      \"minCoverageThreshold\": 90\n    }\n  ]\n}"
+            },
+            "url": "{{backendUrl}}/api/clients/{{clientId}}/projects",
+            "description": "Saves `projectId` and, when present, one-time `apiKey.plainKey`."
+          }
+        },
+        {
+          "name": "Update project",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Patient Portal\",\n  \"repositoryUrl\": \"https://github.com/example/patient-portal\",\n  \"websiteUrl\": \"https://portal.acme.example\",\n  \"description\": \"Updated description\",\n  \"status\": \"active\",\n  \"auditConfig\": [\n    {\n      \"envType\": \"qa\",\n      \"branch\": \"develop\",\n      \"schedule\": \"daily\",\n      \"minCoverageThreshold\": 85\n    }\n  ]\n}"
+            },
+            "url": "{{backendUrl}}/api/projects/{{projectId}}",
+            "description": "Partial update: `name`, `repositoryUrl`, `websiteUrl`, `description`, `status`, `auditConfig`."
+          }
+        },
+        {
+          "name": "Deactivate project",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{backendUrl}}/api/projects/{{projectId}}",
+            "description": "UI treats this as deactivate, not a hard delete. Run last in a CRUD pass."
+          }
+        }
+      ]
+    },
+    {
+      "name": "API Keys",
+      "item": [
+        {
+          "name": "Create API key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('API key created', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.plainKey) pm.environment.set('apiKey', json.plainKey);",
+                  "if (json.id) pm.environment.set('apiKeyId', String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ci-ingest\"\n}"
+            },
+            "url": "{{backendUrl}}/api/projects/{{projectId}}/api-keys",
+            "description": "Response includes `plainKey` once. Saved to `{{apiKey}}`."
+          }
+        },
+        {
+          "name": "Regenerate API key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('API key rotated', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.plainKey) pm.environment.set('apiKey', json.plainKey);",
+                  "if (json.id) pm.environment.set('apiKeyId', String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ci-ingest\"\n}"
+            },
+            "url": "{{backendUrl}}/api/projects/{{projectId}}/api-keys/regenerate",
+            "description": "`name` is optional. Replaces the previous key."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Ingest report (CI)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Report ingested', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "const id = pm.environment.get('_lastEntityId');",
+                  "if (id) pm.environment.set('reportId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"generatedAt\": \"2026-09-17T12:00:00.000Z\",\n  \"pipeline\": {\n    \"provider\": \"github-actions\",\n    \"runId\": \"123456\",\n    \"commitSha\": \"abc123def456\",\n    \"branch\": \"main\",\n    \"triggeredBy\": \"ci\"\n  },\n  \"summary\": {\n    \"totalTests\": 42,\n    \"passedTests\": 40,\n    \"failedTests\": 2,\n    \"coveragePercent\": 87.5,\n    \"auditScore\": 84,\n    \"status\": \"warning\"\n  },\n  \"qualityScore\": 84,\n  \"coverage\": {\n    \"statements\": 87.5,\n    \"branches\": 81,\n    \"functions\": 90,\n    \"lines\": 88\n  },\n  \"tests\": {\n    \"total\": 42,\n    \"passed\": 40,\n    \"failed\": 2\n  }\n}"
+            },
+            "url": "{{backendUrl}}/api/reports",
+            "description": "Not called by the UI. CI / auditors upload with `X-API-Key`. Body is stored as `reportJson`. Adjust to match the backend schema if ingest rejects this sample."
+          }
+        },
+        {
+          "name": "List reports for project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lists reports', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const list = Array.isArray(json) ? json : (json.reports || json.items || json.data || json.results || []);",
+                  "  const first = list[0];",
+                  "  if (first) {",
+                  "    const id = first.id || first._id || first.reportId;",
+                  "    if (id && !pm.environment.get('reportId')) pm.environment.set('reportId', String(id));",
+                  "  }",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{backendUrl}}/api/projects/{{projectId}}/reports?page=1&limit=20",
+              "host": ["{{backendUrl}}"],
+              "path": ["api", "projects", "{{projectId}}", "reports"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get report",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{backendUrl}}/api/reports/{{reportId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

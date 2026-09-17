@@ -11,6 +11,7 @@ export default function Modal({
   subtitle,
   children,
   widthClass = "max-w-md",
+  id,
 }: {
   open: boolean;
   onClose: () => void;
@@ -18,6 +19,7 @@ export default function Modal({
   subtitle?: string;
   children: React.ReactNode;
   widthClass?: string;
+  id?: string;
 }) {
   const reduced = useReducedMotion();
   const [mounted, setMounted] = useState(false);
@@ -43,7 +45,14 @@ export default function Modal({
   const dialog = (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <div
+          id={id}
+          data-modal={id}
+          className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={id && title ? `${id}-title` : undefined}
+        >
           <motion.div
             className="absolute inset-0 bg-ink/70 backdrop-blur-sm"
             onClick={onClose}
@@ -53,6 +62,7 @@ export default function Modal({
             transition={{ duration: reduced ? 0 : 0.2 }}
           />
           <motion.div
+            id={id ? `${id}-panel` : undefined}
             className={`relative w-full ${widthClass} min-w-0 bg-panel border border-line rounded-2xl md:rounded-3xl shadow-xl shadow-black/5 dark:shadow-black/40 max-h-[85vh] overflow-y-auto overflow-x-hidden scrollbar-hidden`}
             initial={reduced ? false : { opacity: 0, y: 16, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -62,7 +72,11 @@ export default function Modal({
             {(title || subtitle) && (
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-line sticky top-0 bg-panel z-10 rounded-t-2xl md:rounded-t-3xl">
                 <div className="pr-4 min-w-0">
-                  {title ? <h2 className="text-sm font-semibold">{title}</h2> : null}
+                  {title ? (
+                    <h2 id={id ? `${id}-title` : undefined} className="text-sm font-semibold">
+                      {title}
+                    </h2>
+                  ) : null}
                   {subtitle ? <p className="text-xs text-mist mt-0.5">{subtitle}</p> : null}
                 </div>
                 <button

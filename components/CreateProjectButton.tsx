@@ -339,6 +339,7 @@ export default function CreateProjectButton({ clientId }: { clientId: string }) 
             : "Configure the environments that UTC Auditor should monitor."
         }
         widthClass="max-w-4xl"
+        id="modal-create-project"
       >
         {createdKey ? (
           <ApiKeyReveal
