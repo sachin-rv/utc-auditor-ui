@@ -8,7 +8,6 @@ import CreateUserButton from "@/components/CreateUserButton";
 import ProjectsBoard from "@/components/ProjectsBoard";
 import PageEnter from "@/components/PageEnter";
 import { emptyStateClass } from "@/lib/ui";
-import LiveRefresh from "@/components/LiveRefresh";
 
 export default async function ClientProjectsPage({ params }: { params: { clientId: string } }) {
   const session = getSession();
@@ -36,7 +35,6 @@ export default async function ClientProjectsPage({ params }: { params: { clientI
   return (
     <PageEnter>
     <div>
-      <LiveRefresh intervalMs={5000} />
       <div className="flex items-end justify-between gap-4 mb-8">
         <div>
           <div className="text-xs font-mono uppercase tracking-widest text-signal-pass mb-1">
