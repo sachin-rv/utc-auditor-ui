@@ -1,6 +1,8 @@
 "use client";
 
-import { btnPrimaryClass, emptyStateClass } from "@/lib/ui";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { btnPrimaryClass, btnSecondaryClass, emptyStateClass } from "@/lib/ui";
 
 export default function DashboardError({
   error,
@@ -9,14 +11,48 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [reloading, setReloading] = useState(false);
+  const busy = pending || reloading;
+
+  function retry() {
+    setReloading(true);
+    startTransition(() => {
+      reset();
+      router.refresh();
+    });
+    window.location.reload();
+  }
+
   return (
-    <div className={`${emptyStateClass} text-chalk m-5 sm:m-8`}>
+    <div id="dashboard-error" className={`${emptyStateClass} text-chalk m-5 sm:m-8`}>
       <div className="text-xs font-mono uppercase tracking-widest text-signal-fail mb-2">API error</div>
       <h1 className="font-display text-2xl font-bold mb-2">Could not load this view</h1>
       <p className="text-sm text-mist mb-6">{error.message || "The UTC Auditor API returned an error."}</p>
-      <button onClick={reset} className={btnPrimaryClass}>
-        Try again
-      </button>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <button
+          id="dashboard-error-retry"
+          type="button"
+          onClick={retry}
+          disabled={busy}
+          className={btnPrimaryClass}
+        >
+          {busy ? "Retrying…" : "Try again"}
+        </button>
+        <button
+          id="dashboard-error-home"
+          type="button"
+          onClick={() => {
+            setReloading(true);
+            window.location.assign("/dashboard");
+          }}
+          disabled={busy}
+          className={btnSecondaryClass}
+        >
+          Go to dashboard
+        </button>
+      </div>
     </div>
   );
 }
