@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import StatusPill from "@/components/StatusPill";
 import { cardClass } from "@/lib/ui";
 import ScoreDial from "@/components/ScoreDial";
 import CoverageBars from "@/components/CoverageBars";
-import TrendChart from "@/components/TrendChart";
 import ReportHistoryList, { ReportRow } from "@/components/ReportHistoryList";
 import CreateApiKeyButton from "@/components/CreateApiKeyButton";
 import CopyTextButton from "@/components/CopyTextButton";
@@ -15,6 +15,11 @@ import EditProjectButton from "@/components/EditProjectButton";
 import type { ApiProject } from "@/lib/api-types";
 import { clientProjectPath } from "@/lib/client-routes";
 import { averageScore } from "@/lib/display-score";
+
+const TrendChart = dynamic(() => import("@/components/TrendChart"), {
+  ssr: false,
+  loading: () => <div className="h-48 rounded-xl bg-panel2/60" aria-hidden />,
+});
 
 function envLabel(envType: string) {
   const labels: Record<string, string> = {

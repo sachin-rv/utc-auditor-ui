@@ -7,6 +7,7 @@ import type {
   ApiClient,
   ApiKeyCreated,
   ApiProject,
+  ApiReportDetail,
   AuthUser,
   CreateProjectInput,
   CreateUserInput,
@@ -120,6 +121,15 @@ export async function regenerateApiKeyAction(projectId: string, name?: string) {
     return { ok: true as const, data };
   } catch (e) {
     return fail(e, "Failed to rotate API key.");
+  }
+}
+
+export async function loadReportJsonAction(reportId: string) {
+  try {
+    const report = await backendFetch<ApiReportDetail>(`/reports/${reportId}`);
+    return { ok: true as const, json: report.reportJson ?? {} };
+  } catch (e) {
+    return fail(e, "Could not load the raw report.");
   }
 }
 

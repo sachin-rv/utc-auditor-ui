@@ -1,24 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import CoverageBars from "@/components/CoverageBars";
-import FindingsPanel from "@/components/FindingsPanel";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import CopyTextButton from "@/components/CopyTextButton";
-import JsonTree from "@/components/JsonTree";
-import StatusPill from "@/components/StatusPill";
 import PageLoader from "@/components/PageLoader";
 import type { ReportRow } from "@/components/ReportHistoryList";
 import ScoreChangeCard from "@/components/ScoreChangeCard";
 import type { CoverageMetrics, Finding } from "@/lib/types";
 import type { ReportPipeline } from "@/lib/api-types";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import PageEnter, { listContainer, listItem } from "@/components/PageEnter";
 import { cardClass, cardInteractiveClass, chipActiveClass, chipClass, chipIdleClass } from "@/lib/ui";
 import { clientProjectPath, clientReportDetailsPath } from "@/lib/client-routes";
 import { averageScore, gradeLabel } from "@/lib/display-score";
 import { explainScoreChange, snapshotFromRow } from "@/lib/score-change";
+import { loadReportJsonAction } from "@/app/dashboard/actions";
+
+const FindingsPanel = dynamic(() => import("@/components/FindingsPanel"), {
+  loading: () => <PageLoader label="Loading findings…" />,
+});
+
+const ReportRawJson = dynamic(() => import("@/components/ReportRawJson"), {
+  loading: () => <PageLoader label="Loading report JSON…" />,
+});
 
 export interface ReportTopRisk {
   title: string;
@@ -43,7 +47,6 @@ export interface ReportViewModel {
   status: string;
   pipeline?: ReportPipeline;
   hasDetailed: boolean;
-  rawJson: Record<string, unknown>;
   history: ReportRow[];
 }
 
@@ -87,34 +90,34 @@ export default function ReportView({
   view: ReportViewModel;
 }) {
   const [tab, setTab] = useState<Tab>("overview");
-  const [tabReady, setTabReady] = useState(true);
   const [pipelineOpen, setPipelineOpen] = useState(false);
-  const [jsonText, setJsonText] = useState<string | null>(null);
-  const reduced = useReducedMotion();
+  const [rawJson, setRawJson] = useState<Record<string, unknown> | null>(null);
+  const [rawError, setRawError] = useState<string | null>(null);
+  const [rawLoading, setRawLoading] = useState(false);
 
   const qualityScore = Math.max(1, Math.round(view.overallScore));
   const grade = view.grade || "C";
 
   const history = useMemo(() => {
-    const rows = [...view.history];
-    if (!rows.some((r) => r.id === view.id)) {
-      rows.unshift({
-        id: view.id,
-        timestamp: view.timestamp,
-        trigger: view.pipeline?.triggeredBy ?? view.pipeline?.provider ?? "pipeline",
-        overallScore: qualityScore,
-        passed: view.testExecution.passed,
-        total: view.testExecution.total,
-        failed: view.testExecution.failed,
-        coverage: view.coverage,
-        coveragePercent: view.coverage.lines,
-        status: view.status,
-        qualityGrade: grade,
-        completenessScore: view.cmsCoverage,
-        cmsReadiness: view.cmsReadiness,
-        findingsCount: view.findings.length,
-      });
-    }
+    const current = {
+      id: view.id,
+      timestamp: view.timestamp,
+      trigger: view.pipeline?.triggeredBy ?? view.pipeline?.provider ?? "pipeline",
+      overallScore: qualityScore,
+      passed: view.testExecution.passed,
+      total: view.testExecution.total,
+      failed: view.testExecution.failed,
+      coverage: view.coverage,
+      coveragePercent: view.coverage.lines,
+      status: view.status,
+      qualityGrade: grade,
+      completenessScore: view.cmsCoverage,
+      cmsReadiness: view.cmsReadiness,
+      findingsCount: view.findings.length,
+    };
+    const rows = view.history.some((r) => r.id === view.id)
+      ? view.history.map((r) => (r.id === view.id ? { ...r, ...current } : r))
+      : [current, ...view.history];
     return rows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [view, qualityScore, grade]);
 
@@ -133,28 +136,22 @@ export default function ReportView({
   function goToTab(next: Tab) {
     if (next === tab) return;
     setTab(next);
-    if (next === "overview") {
-      setTabReady(true);
-      return;
-    }
-    setTabReady(false);
   }
 
-  useEffect(() => {
-    if (tab === "overview") return;
-    let cancelled = false;
-    let timer = 0;
-    const frame = requestAnimationFrame(() => {
-      timer = window.setTimeout(() => {
-        if (!cancelled) setTabReady(true);
-      }, 220);
-    });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(frame);
-      window.clearTimeout(timer);
-    };
-  }, [tab]);
+  async function toggleRunDetails() {
+    const next = !pipelineOpen;
+    setPipelineOpen(next);
+    if (!next || rawJson || rawLoading) return;
+    setRawLoading(true);
+    setRawError(null);
+    const result = await loadReportJsonAction(view.id);
+    setRawLoading(false);
+    if (!result.ok) {
+      setRawError(result.error);
+      return;
+    }
+    setRawJson(result.json);
+  }
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "overview", label: "Overview" },
@@ -174,7 +171,6 @@ export default function ReportView({
   ];
 
   return (
-    <PageEnter>
     <div id="report-view">
       <Link
         href={
@@ -227,58 +223,38 @@ export default function ReportView({
         ))}
       </div>
 
-      <AnimatePresence mode="wait">
+      <div>
         {tab === "overview" && (
-          <motion.div
-            key="overview"
-            initial={reduced ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduced ? undefined : { opacity: 0, y: -6 }}
-            transition={{ duration: reduced ? 0 : 0.25 }}
-            className="space-y-3"
-            id="report-overview"
-          >
+          <div className="space-y-3" id="report-overview">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
               <section id="report-summary">
                 <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-1.5">Summary</div>
-                <motion.div
-                  className="grid grid-cols-3 gap-2"
-                  variants={reduced ? undefined : listContainer}
-                  initial={reduced ? false : "hidden"}
-                  animate="show"
-                >
+                <div className="grid grid-cols-3 gap-2">
                   {summaryCards.map((card) => (
-                    <motion.div
+                    <div
                       key={card.label}
-                      variants={reduced ? undefined : listItem}
                       className={`${cardClass} flex items-center justify-between gap-3 px-3 py-2.5`}
                     >
                       <div className="text-[10px] uppercase tracking-widest text-mist leading-none">{card.label}</div>
                       <div className={`font-display text-xl font-bold tabular-nums leading-none shrink-0 ${card.tone}`}>{card.value}</div>
-                    </motion.div>
+                    </div>
                   ))}
-                </motion.div>
+                </div>
               </section>
 
               <section id="report-health">
                 <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-mist mb-1.5">Health indicators</div>
-                <motion.div
-                  className="grid grid-cols-3 gap-2"
-                  variants={reduced ? undefined : listContainer}
-                  initial={reduced ? false : "hidden"}
-                  animate="show"
-                >
+                <div className="grid grid-cols-3 gap-2">
                   {indicators.map((card) => (
-                    <motion.div
+                    <div
                       key={card.label}
-                      variants={reduced ? undefined : listItem}
                       className={`${cardClass} flex items-center justify-between gap-3 px-3 py-2.5`}
                     >
                       <div className="text-[10px] uppercase tracking-widest text-mist leading-none">{card.label}</div>
                       <div className={`font-display text-xl font-bold tabular-nums leading-none shrink-0 ${card.tone}`}>{card.value}</div>
-                    </motion.div>
+                    </div>
                   ))}
-                </motion.div>
+                </div>
               </section>
             </div>
 
@@ -305,10 +281,7 @@ export default function ReportView({
             <div id="report-run-details" className={`w-full ${cardClass} overflow-hidden`}>
               <button
                 type="button"
-                onClick={() => {
-                  setPipelineOpen((v) => !v);
-                  if (!jsonText) setJsonText(JSON.stringify(view.rawJson, null, 2));
-                }}
+                onClick={toggleRunDetails}
                 className="w-full px-4 py-2.5 text-left hover:bg-panel2/40 transition-colors flex items-center justify-between"
               >
                 <span className="text-xs uppercase tracking-widest text-mist">Run details</span>
@@ -332,41 +305,22 @@ export default function ReportView({
                     <MetaRow label="Started by" value={view.pipeline?.triggeredBy ?? "—"} />
                     <MetaRow label="Source" value={view.pipeline?.provider ?? "—"} />
                   </dl>
-                  <div className="border border-line rounded-xl overflow-hidden">
-                      <div className="flex items-center justify-between px-3 py-2 border-b border-line bg-panel2/40">
-                        <span className="text-[11px] text-mist">Raw report (support use)</span>
-                        <CopyTextButton
-                          value={jsonText ?? JSON.stringify(view.rawJson, null, 2)}
-                          label="Copy"
-                        />
-                      </div>
-                      <JsonTree value={view.rawJson} />
-                    </div>
+                  {rawError && <p className="text-sm text-signal-fail">{rawError}</p>}
+                  {rawLoading && <PageLoader label="Loading report JSON…" />}
+                  {rawJson && <ReportRawJson value={rawJson} />}
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         )}
 
         {tab === "findings" && (
-          <motion.section
-            id="report-findings"
-            key="findings"
-            initial={reduced ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduced ? undefined : { opacity: 0, y: -6 }}
-            transition={{ duration: reduced ? 0 : 0.25 }}
-          >
-            {!tabReady ? (
-              <PageLoader label="Loading findings…" />
-            ) : (
-              <FindingsPanel findings={view.findings} />
-            )}
-          </motion.section>
+          <section id="report-findings">
+            <FindingsPanel findings={view.findings} />
+          </section>
         )}
-      </AnimatePresence>
+      </div>
     </div>
-    </PageEnter>
   );
 }
 

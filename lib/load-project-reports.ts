@@ -8,18 +8,26 @@ const LIST_LIMIT = 20;
 const HYDRATE_LIMIT = 12;
 
 export async function loadProjectBoardItems(projects: ApiProject[]): Promise<ProjectBoardItem[]> {
-  return Promise.all(projects.map(loadOne));
+  return Promise.all(projects.map((project) => loadOne(project)));
 }
 
-export async function loadProjectReports(project: ApiProject): Promise<ProjectBoardItem> {
-  return loadOne(project);
+export async function loadProjectReports(
+  project: ApiProject,
+  options?: { hydrate?: boolean; hydrateLimit?: number }
+): Promise<ProjectBoardItem> {
+  return loadOne(project, options?.hydrate !== false, options?.hydrateLimit ?? HYDRATE_LIMIT);
 }
 
-async function loadOne(project: ApiProject): Promise<ProjectBoardItem> {
+async function loadOne(
+  project: ApiProject,
+  hydrate = true,
+  hydrateLimit = HYDRATE_LIMIT
+): Promise<ProjectBoardItem> {
   const raw = await apiGet<ApiReportsPage>(`/projects/${project.id}/reports?page=1&limit=${LIST_LIMIT}`);
   const page = normalizeReportsPage(raw, project);
-  const head = page.reports.slice(0, HYDRATE_LIMIT);
-  const tail = page.reports.slice(HYDRATE_LIMIT);
+  const limit = Math.max(0, hydrateLimit);
+  const head = hydrate ? page.reports.slice(0, limit) : [];
+  const tail = hydrate ? page.reports.slice(limit) : page.reports;
   const hydrated = await Promise.all(
     head.map(async (item, index) => {
       const missingJson = !item.reportJson || Object.keys(item.reportJson).length === 0;

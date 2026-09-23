@@ -1,4 +1,5 @@
 import { redirect, notFound } from "next/navigation";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { apiGet, backendFetchOptional } from "@/lib/backend";
@@ -6,10 +7,17 @@ import { detailView } from "@/lib/report-map";
 import { parseUserReport } from "@/lib/user-report";
 import type { ApiProject, ApiReportDetail } from "@/lib/api-types";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import AuditDetailsDashboard from "@/components/AuditDetailsDashboard";
-import PageEnter from "@/components/PageEnter";
 import { MarkWorkspaceProject } from "@/components/ClientWorkspaceShell";
 import { clientReportPath } from "@/lib/client-routes";
+import { cardClass } from "@/lib/ui";
+
+const AuditDetailsDashboard = dynamic(() => import("@/components/AuditDetailsDashboard"), {
+  loading: () => (
+    <div className={`${cardClass} px-8 py-16 text-center text-sm text-mist`}>
+      Loading quality breakdown…
+    </div>
+  ),
+});
 
 function fmtDateTime(iso: string) {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
@@ -34,7 +42,6 @@ export default async function ReportDetailedQualityPage({
   const project = await backendFetchOptional<ApiProject>(`/projects/${report.projectId}`);
 
   return (
-    <PageEnter>
     <div>
       <MarkWorkspaceProject projectId={report.projectId} />
       <Link
@@ -59,6 +66,5 @@ export default async function ReportDetailedQualityPage({
 
       <AuditDetailsDashboard data={dashboard} />
     </div>
-    </PageEnter>
   );
 }
