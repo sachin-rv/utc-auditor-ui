@@ -3,7 +3,6 @@
 import type { CoverageMetrics } from "@/lib/types";
 import { useTheme } from "@/lib/useTheme";
 import { THEME_COLORS } from "@/lib/theme-colors";
-import { motion, useReducedMotion } from "framer-motion";
 
 function bandColor(v: number, c: { fail: string; warn: string; info: string; pass: string }) {
   if (v < 60) return c.fail;
@@ -28,11 +27,10 @@ export default function CoverageBars({
 }) {
   const theme = useTheme();
   const c = THEME_COLORS[theme];
-  const reduced = useReducedMotion();
 
   return (
     <div className={compact ? "grid grid-cols-2 gap-x-5 gap-y-2" : "space-y-3"}>
-      {LABELS.map(({ key, label }, i) => {
+      {LABELS.map(({ key, label }) => {
         const v = coverage[key];
         const color = bandColor(v, c);
         return (
@@ -44,12 +42,9 @@ export default function CoverageBars({
               </span>
             </div>
             <div className={`${compact ? "h-1" : "h-1.5"} w-full rounded-full bg-line overflow-hidden`}>
-              <motion.div
+              <div
                 className="h-full rounded-full"
-                style={{ backgroundColor: color }}
-                initial={reduced ? false : { width: 0 }}
-                animate={{ width: `${v}%` }}
-                transition={{ duration: reduced ? 0 : 0.7, delay: reduced ? 0 : i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                style={{ backgroundColor: color, width: `${v}%` }}
               />
             </div>
           </div>

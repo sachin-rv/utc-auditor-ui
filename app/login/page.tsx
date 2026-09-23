@@ -2,12 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import ThemeToggle from "@/components/ThemeToggle";
 import Logo from "@/components/Logo";
-import InteractivePreview from "@/components/login-preview/InteractivePreview";
 import PasswordField from "@/components/PasswordField";
 import PageLoader from "@/components/PageLoader";
 import { fieldClass } from "@/lib/ui";
+
+const InteractivePreview = dynamic(
+  () => import("@/components/login-preview/InteractivePreview"),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="relative hidden flex-1 overflow-hidden rounded-t-2xl bg-[#0d8f7f] md:flex md:rounded-t-none md:rounded-r-3xl"
+        aria-hidden
+      />
+    ),
+  }
+);
 
 export default function LoginPage() {
   const router = useRouter();

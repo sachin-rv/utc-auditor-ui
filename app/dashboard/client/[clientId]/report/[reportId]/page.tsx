@@ -23,13 +23,16 @@ export default async function ReportDetailPage({
   const view = detailView(report);
   let history = null;
   try {
-    history = await loadProjectReports({
-      id: report.projectId,
-      clientId: report.clientId,
-      name: project?.name ?? "Project",
-      slug: project?.slug ?? "",
-      status: project?.status ?? "active",
-    });
+    history = await loadProjectReports(
+      {
+        id: report.projectId,
+        clientId: report.clientId,
+        name: project?.name ?? "Project",
+        slug: project?.slug ?? "",
+        status: project?.status ?? "active",
+      },
+      { hydrateLimit: 20 }
+    );
   } catch (e) {
     if (isNextInterrupt(e)) throw e;
   }
@@ -60,7 +63,6 @@ export default async function ReportDetailPage({
           status: view.status,
           pipeline: view.pipeline,
           hasDetailed: view.hasDetailed,
-          rawJson: view.rawJson,
           history: history?.reports ?? [],
         }}
       />

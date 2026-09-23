@@ -1,50 +1,35 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
-import { Building2, FolderKanban, Activity, ShieldCheck } from "lucide-react";
+import { Building2, FolderKanban, Activity } from "lucide-react";
 import ClientListPanel, { type ClientRow } from "@/components/ClientListPanel";
 import CreateClientButton from "@/components/CreateClientButton";
 import CreateUserButton from "@/components/CreateUserButton";
-import { useTheme } from "@/lib/useTheme";
-import { THEME_COLORS } from "@/lib/theme-colors";
 import { cardClass, chipActiveClass, chipClass, chipIdleClass } from "@/lib/ui";
 import type { OverviewReportPoint } from "@/lib/load-admin-overview";
 import type { ApiProject } from "@/lib/api-types";
+import type { OverviewChartTab, OverviewTimeRange } from "@/components/AdminOverviewCharts";
+
+const AdminOverviewCharts = dynamic(() => import("@/components/AdminOverviewCharts"), {
+  ssr: false,
+  loading: () => (
+    <div id="admin-charts" className={`${cardClass} p-5 lg:p-6 min-h-[360px] flex items-center justify-center text-sm text-mist`}>
+      Loading charts…
+    </div>
+  ),
+});
 
 type StatusFilter = "all" | "active" | "empty";
-type ChartTab = "projects" | "scores";
-type TimeRange = "all" | "week" | "month" | "year";
 
-function inRange(iso: string, range: TimeRange) {
+function inRange(iso: string, range: OverviewTimeRange) {
   if (range === "all") return true;
   const t = new Date(iso).getTime();
   if (!Number.isFinite(t)) return false;
   const now = Date.now();
   const days = range === "week" ? 7 : range === "month" ? 30 : 365;
   return t >= now - days * 24 * 60 * 60 * 1000;
-}
-
-function fmtRangeLabel(range: TimeRange) {
-  const end = new Date();
-  const start = new Date();
-  if (range === "week") start.setDate(end.getDate() - 7);
-  else if (range === "month") start.setDate(end.getDate() - 30);
-  else if (range === "year") start.setFullYear(end.getFullYear() - 1);
-  else start.setFullYear(end.getFullYear() - 3);
-  const f = (d: Date) =>
-    d.toLocaleDateString(undefined, { year: "numeric", month: "2-digit", day: "2-digit" });
-  return `${f(start)} ~ ${f(end)}`;
 }
 
 export default function AdminOverview({
@@ -56,11 +41,9 @@ export default function AdminOverview({
   projects: ApiProject[];
   points: OverviewReportPoint[];
 }) {
-  const theme = useTheme();
-  const colors = THEME_COLORS[theme];
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [tab, setTab] = useState<ChartTab>("projects");
-  const [range, setRange] = useState<TimeRange>("all");
+  const [tab, setTab] = useState<OverviewChartTab>("projects");
+  const [range, setRange] = useState<OverviewTimeRange>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const projectCountByClient = useMemo(() => {
@@ -100,10 +83,6 @@ export default function AdminOverview({
     scored.length > 0
       ? Math.round(scored.reduce((a, p) => a + (p.score ?? 0), 0) / scored.length)
       : 0;
-  const passRate =
-    rangedPoints.length > 0
-      ? Math.round((rangedPoints.filter((p) => p.passed).length / rangedPoints.length) * 100)
-      : Math.round((activeClients / Math.max(clients.length, 1)) * 100);
 
   const filteredClients = useMemo(() => {
     return clients.filter((c) => {
@@ -213,26 +192,6 @@ export default function AdminOverview({
           active={tab === "scores"}
           onClick={() => setTab((v) => (v === "scores" ? "projects" : "scores"))}
         />
-        {/* <button
-          type="button"
-          onClick={() => setStatusFilter((v) => (v === "active" ? "all" : "active"))}
-          className={`${cardClass} p-5 text-left hover:border-signal-pass/40 transition ${
-            statusFilter === "active" ? "border-signal-pass/50 ring-1 ring-signal-pass/20" : ""
-          }`}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-xs uppercase tracking-widest text-mist mb-2 flex items-center gap-2">
-                <ShieldCheck size={18} />
-                Audit effect
-              </div>
-              <div className="text-xs text-mist">
-                {statusFilter === "active" ? "Showing active with work" : "Click to show active"}
-              </div>
-            </div>
-            <CompactGauge value={passRate || avgScore} label={rangedPoints.length ? "Pass" : "Health"} />
-          </div>
-        </button> */}
       </div>
 
       <div id="client-directory">
@@ -260,160 +219,17 @@ export default function AdminOverview({
         <ClientListPanel clients={listClients} highlightId={selectedId} />
       </div>
 
-      <div id="admin-charts" className={`${cardClass} p-5 lg:p-6`}>
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 mb-5">
-          <div className="flex items-center gap-2">
-            {(
-              [
-                ["projects", "Projects"],
-                ["scores", "Scores"],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setTab(id)}
-                className={`${chipClass} ${tab === id ? chipActiveClass : chipIdleClass}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {(
-              [
-                ["all", "All"],
-                ["week", "Week"],
-                ["month", "Month"],
-                ["year", "Year"],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setRange(id)}
-                className={`${chipClass} ${range === id ? chipActiveClass : chipIdleClass}`}
-              >
-                {label}
-              </button>
-            ))}
-            <span className="text-[11px] font-mono text-mist border border-line rounded-full px-3 py-1.5">
-              {fmtRangeLabel(range)}
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_280px] gap-6">
-          <div className="min-h-[280px] h-[320px]">
-            {chartRows.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-sm text-mist">
-                No clients in this filter.
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartRows}
-                  margin={{ top: 8, right: 8, left: -12, bottom: 8 }}
-                  onClick={(state) => {
-                    const id = (state as { activePayload?: { payload?: { clientId?: string } }[] })
-                      ?.activePayload?.[0]?.payload?.clientId;
-                    if (id) selectClient(id);
-                  }}
-                >
-                  <CartesianGrid stroke={colors.line} vertical={false} />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fill: colors.mist, fontSize: 11, fontFamily: "ui-monospace, monospace" }}
-                    tickLine={false}
-                    axisLine={false}
-                    interval={0}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fill: colors.mist, fontSize: 11, fontFamily: "ui-monospace, monospace" }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={36}
-                    domain={tab === "scores" ? [0, 100] : [0, "auto"]}
-                  />
-                  <Tooltip
-                    cursor={{ fill: colors.pass, fillOpacity: 0.08 }}
-                    content={({ active, payload }) => {
-                      const row = payload?.[0]?.payload as (typeof chartRows)[number] | undefined;
-                      if (!active || !row) return null;
-                      return (
-                        <div className="border border-line bg-panel2 rounded-xl px-2.5 py-1.5 text-[11px] font-mono shadow-xl">
-                          <div className="text-chalk mb-0.5">{row.fullName}</div>
-                          <div className="text-mist">{row.projects} projects</div>
-                          <div className="text-mist">{row.reports} reports · score {row.score || "—"}</div>
-                          <div className="text-signal-pass mt-1">Click to focus</div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Bar dataKey={tab === "scores" ? "score" : "projects"} radius={[6, 6, 0, 0]} maxBarSize={36} cursor="pointer">
-                    {chartRows.map((row) => (
-                      <Cell
-                        key={row.clientId}
-                        fill={selectedId === row.clientId ? colors.pass : colors.info}
-                        fillOpacity={selectedId && selectedId !== row.clientId ? 0.35 : 0.9}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-
-          <div>
-            <div className="text-xs uppercase tracking-widest text-mist mb-3">
-              {tab === "scores" ? "Score ranking" : "Project ranking"}
-            </div>
-            <ol className="space-y-1">
-              {ranking.length === 0 ? (
-                <li className="text-sm text-mist py-6 text-center">Nothing to rank yet.</li>
-              ) : (
-                ranking.map((c, i) => (
-                  <li key={c.id}>
-                    <button
-                      type="button"
-                      onClick={() => selectClient(c.id)}
-                      className={`w-full flex items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors ${
-                        selectedId === c.id
-                          ? "bg-signal-pass/10 text-signal-pass"
-                          : "hover:bg-panel2 hover:text-signal-pass text-chalk"
-                      }`}
-                    >
-                      <span
-                        className={`h-6 w-6 shrink-0 rounded-full text-[11px] font-mono flex items-center justify-center ${
-                          i < 3 ? "bg-chalk text-panel dark:bg-signal-pass dark:text-onaccent" : "bg-panel2 text-mist border border-line"
-                        }`}
-                      >
-                        {i + 1}
-                      </span>
-                      <span className="flex-1 truncate text-sm">{c.name}</span>
-                      <span className="text-xs font-mono tabular-nums text-mist">
-                        {tab === "scores" ? (c.score ? c.score : "—") : c.projects}
-                      </span>
-                    </button>
-                  </li>
-                ))
-              )}
-            </ol>
-            {selectedId && (
-              <button
-                type="button"
-                onClick={() => setSelectedId(null)}
-                className="mt-3 text-[11px] font-mono text-mist hover:text-signal-pass"
-              >
-                Clear focus
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      
+      <AdminOverviewCharts
+        chartRows={chartRows}
+        ranking={ranking}
+        tab={tab}
+        range={range}
+        selectedId={selectedId}
+        onTab={setTab}
+        onRange={setRange}
+        onSelect={selectClient}
+        onClear={() => setSelectedId(null)}
+      />
     </div>
   );
 }
@@ -448,40 +264,5 @@ function KpiCard({
       <div className="font-display text-3xl font-bold tabular-nums">{value}</div>
       <div className="text-xs text-mist mt-3 border-t border-line pt-3">{footer}</div>
     </button>
-  );
-}
-
-function CompactGauge({ value, label }: { value: number; label: string }) {
-  const theme = useTheme();
-  const c = THEME_COLORS[theme];
-  const size = 100;
-  const stroke = 4;
-  const r = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(100, value)) / 100;
-  const dash = circumference * pct;
-  const color = value >= 80 ? c.pass : value >= 60 ? c.warn : c.fail;
-  return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={c.line} strokeWidth={stroke} />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circumference - dash}`}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-display text-lg font-bold tabular-nums" style={{ color }}>
-          {Math.round(value)}%
-        </span>
-        <span className="text-[9px] uppercase tracking-wider text-mist">{label}</span>
-      </div>
-    </div>
   );
 }

@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { apiGet } from "@/lib/backend";
 import { normalizeClients, normalizeProjects } from "@/lib/api-normalize";
 import { loadProjectBoardItems } from "@/lib/load-project-reports";
-import { ClientRow } from "@/components/ClientListPanel";
+import type { ClientRow } from "@/components/ClientListPanel";
 import AdminOverview from "@/components/AdminOverview";
 import ProjectsBoard from "@/components/ProjectsBoard";
 import PageEnter from "@/components/PageEnter";
