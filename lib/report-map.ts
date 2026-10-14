@@ -131,11 +131,34 @@ export function findingsFromJson(reportJson: Record<string, unknown> | undefined
   return out;
 }
 
+function coverageFromSummary(
+  summary: ApiReportListItem["summary"],
+  reportJson: Record<string, unknown> | undefined
+): CoverageMetrics {
+  const fromJson = coverageFromJson(reportJson, summary?.coveragePercent);
+  const user = parseUserReport(reportJson);
+  if (user?.coverage.length) return user.coverageTotals;
+  if (reportJson && (Array.isArray(reportJson.coverage) || (reportJson.coverage && typeof reportJson.coverage === "object"))) {
+    return fromJson;
+  }
+  const line = summary?.lines ?? summary?.coveragePercent;
+  if (summary?.statements != null || summary?.lines != null || line != null) {
+    const fallback = Math.round(line ?? 0);
+    return {
+      statements: Math.round(summary?.statements ?? fallback),
+      branches: Math.round(summary?.branches ?? fallback),
+      functions: Math.round(summary?.functions ?? fallback),
+      lines: Math.round(summary?.lines ?? fallback),
+    };
+  }
+  return fromJson;
+}
+
 export function listRowFromApi(r: ApiReportListItem) {
   const s = r.summary ?? {};
   const json = r.reportJson ?? {};
   const user = parseUserReport(json);
-  const coverage = coverageFromJson(json, s.coveragePercent ?? user?.coverageTotals.lines);
+  const coverage = coverageFromSummary(s, json);
   const passed = s.passedTests ?? user?.run.passed ?? 0;
   const total = s.totalTests ?? user?.run.total ?? 0;
   const failed = s.failedTests ?? user?.run.failed ?? Math.max(0, total - passed);
@@ -144,11 +167,13 @@ export function listRowFromApi(r: ApiReportListItem) {
     qualityScore: firstPositive(s.auditScore, user?.quality.score),
     passRate,
     coverage: coverage.lines,
-    completeness: user?.completeness.score,
-    cmsReadiness: user?.cms.score,
+    completeness: s.completenessScore ?? user?.completeness.score,
+    cmsReadiness: s.cmsReadiness ?? user?.cms.score,
     totalTests: total,
   });
-  const findingsCount = findingsFromJson(json).length || user?.staticIssues.length || 0;
+  const findingsCount =
+    s.findingsCount ??
+    (findingsFromJson(json).length || user?.staticIssues.length || 0);
   const status = s.status
     ? mapStatus(s.status)
     : failed > 0
@@ -158,11 +183,13 @@ export function listRowFromApi(r: ApiReportListItem) {
         : user || overallScore
           ? "success"
           : "no_reports";
-  const libraryGrade = user?.quality.grade;
+  const libraryGrade = s.qualityGrade || user?.quality.grade;
   const qualityGrade =
     firstPositive(s.auditScore, user?.quality.score) && libraryGrade
       ? libraryGrade
       : gradeFromScore(overallScore);
+  const completeness = s.completenessScore ?? user?.completeness.score;
+  const cms = s.cmsReadiness ?? user?.cms.score;
   return {
     id: r.id,
     timestamp: r.generatedAt,
@@ -175,10 +202,8 @@ export function listRowFromApi(r: ApiReportListItem) {
     coveragePercent: firstPositive(s.coveragePercent, coverage.lines) ?? displayPercent(coverage.lines),
     status,
     qualityGrade,
-    completenessScore: user?.completeness.score
-      ? displayPercent(user.completeness.score)
-      : undefined,
-    cmsReadiness: user?.cms.score ? displayPercent(user.cms.score) : undefined,
+    completenessScore: completeness ? displayPercent(completeness) : undefined,
+    cmsReadiness: cms ? displayPercent(cms) : undefined,
     findingsCount,
   };
 }

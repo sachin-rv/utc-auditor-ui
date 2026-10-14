@@ -1,9 +1,6 @@
-import { backendFetch, isNextInterrupt } from "@/lib/backend";
-import { normalizeProjects, normalizeReportsPage } from "@/lib/api-normalize";
+import { backendFetch } from "@/lib/backend";
+import { normalizeProjects, rec } from "@/lib/api-normalize";
 import type { ApiProject } from "@/lib/api-types";
-
-const PROJECT_CAP = 24;
-const REPORTS_PER_PROJECT = 20;
 
 export type OverviewReportPoint = {
   clientId: string;
@@ -19,41 +16,24 @@ export type AdminOverviewData = {
   points: OverviewReportPoint[];
 };
 
+function num(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 export async function loadAdminOverview(): Promise<AdminOverviewData> {
-  let projects: ApiProject[] = [];
-  try {
-    projects = normalizeProjects(await backendFetch<unknown>("/projects"));
-  } catch (e) {
-    if (isNextInterrupt(e)) throw e;
-    projects = [];
-  }
-
-  const sample = projects.slice(0, PROJECT_CAP);
-  const batches = await Promise.all(
-    sample.map(async (project) => {
-      try {
-        const raw = await backendFetch<unknown>(
-          `/projects/${project.id}/reports?page=1&limit=${REPORTS_PER_PROJECT}`
-        );
-        const page = normalizeReportsPage(raw, project);
-        return page.reports.map((report) => {
-          const status = (report.summary?.status ?? "").toLowerCase();
-          const score = report.summary?.auditScore ?? null;
-          return {
-            clientId: project.clientId || report.clientId || "",
-            projectId: project.id,
-            generatedAt: report.generatedAt,
-            score,
-            coverage: report.summary?.coveragePercent ?? null,
-            passed: status === "pass" || status === "success" || (typeof score === "number" && score >= 80),
-          } satisfies OverviewReportPoint;
-        });
-      } catch (e) {
-        if (isNextInterrupt(e)) throw e;
-        return [] as OverviewReportPoint[];
-      }
-    })
-  );
-
-  return { projects, points: batches.flat() };
+  const raw = await backendFetch<unknown>("/overview");
+  const body = rec(raw);
+  const projects = normalizeProjects(body.projects ?? []);
+  const points = (Array.isArray(body.points) ? body.points : []).map((row) => {
+    const point = rec(row);
+    return {
+      clientId: String(point.clientId ?? ""),
+      projectId: String(point.projectId ?? ""),
+      generatedAt: String(point.generatedAt ?? ""),
+      score: num(point.score),
+      coverage: num(point.coverage),
+      passed: point.passed === true,
+    } satisfies OverviewReportPoint;
+  });
+  return { projects, points };
 }

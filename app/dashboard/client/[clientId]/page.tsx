@@ -5,6 +5,7 @@ import { normalizeClient, normalizeProjects } from "@/lib/api-normalize";
 import { loadProjectBoardItems } from "@/lib/load-project-reports";
 import CreateProjectButton from "@/components/CreateProjectButton";
 import CreateUserButton from "@/components/CreateUserButton";
+import ResetPasswordButton from "@/components/ResetPasswordButton";
 import ProjectsBoard from "@/components/ProjectsBoard";
 import PageEnter from "@/components/PageEnter";
 import { emptyStateClass } from "@/lib/ui";
@@ -57,6 +58,7 @@ export default async function ClientProjectsPage({ params }: { params: { clientI
         {isAdmin && (
           <div className="flex items-center gap-2">
             <CreateUserButton defaultClientId={params.clientId} />
+            <ResetPasswordButton defaultEmail={client?.contactEmail ?? ""} />
             <CreateProjectButton clientId={params.clientId} />
           </div>
         )}

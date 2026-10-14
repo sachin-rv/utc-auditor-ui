@@ -29,10 +29,14 @@ async function loadOne(
   const head = hydrate ? page.reports.slice(0, limit) : [];
   const tail = hydrate ? page.reports.slice(limit) : page.reports;
   const hydrated = await Promise.all(
-    head.map(async (item, index) => {
+    head.map(async (item) => {
       const missingJson = !item.reportJson || Object.keys(item.reportJson).length === 0;
-      if (!missingJson) return item;
-      if (index > 0 && item.summary?.auditScore != null && item.summary.totalTests != null) return item;
+      const summary = item.summary;
+      const rich =
+        summary?.auditScore != null &&
+        summary.totalTests != null &&
+        (summary.lines != null || summary.statements != null || summary.coveragePercent != null);
+      if (!missingJson || rich) return item;
       try {
         const detail = await apiGet<unknown>(`/reports/${item.id}`);
         return normalizeReportDetail(detail) ?? item;

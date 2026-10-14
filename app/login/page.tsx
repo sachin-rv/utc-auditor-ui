@@ -45,7 +45,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     const url = setupRequired ? "/api/auth/setup" : "/api/auth/login";
-    const body = setupRequired ? { email, password, name } : { email, password };
+    const body = setupRequired ? { email, password, name } : { email, password, rememberMe };
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -147,24 +147,15 @@ export default function LoginPage() {
               </div>
 
               {!setupRequired && (
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="h-4 w-4 rounded border-line text-signal-pass focus:ring-signal-pass/30"
-                    />
-                    <span className="text-sm text-mist">Remember Me</span>
-                  </label>
-                  <a
-                    href="#"
-                    className="text-sm font-medium text-signal-pass hover:brightness-110 transition"
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    Forgot Your Password?
-                  </a>
-                </div>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-line text-signal-pass focus:ring-signal-pass/30"
+                  />
+                  <span className="text-sm text-mist">Remember Me</span>
+                </label>
               )}
 
               {error && (

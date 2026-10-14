@@ -166,6 +166,14 @@ export function normalizeReportListItem(raw: unknown): ApiReportListItem | null 
           coveragePercent: num(summary.coveragePercent ?? summary.coverage),
           auditScore: num(summary.auditScore ?? summary.overallScore ?? summary.score ?? summary.qualityScore),
           status: summary.status ? String(summary.status) : undefined,
+          statements: num(summary.statements),
+          branches: num(summary.branches),
+          functions: num(summary.functions),
+          lines: num(summary.lines),
+          findingsCount: num(summary.findingsCount),
+          completenessScore: num(summary.completenessScore),
+          cmsReadiness: num(summary.cmsReadiness),
+          qualityGrade: summary.qualityGrade ? String(summary.qualityGrade) : undefined,
         }
       : undefined,
     pipeline: Object.keys(pipeline).length

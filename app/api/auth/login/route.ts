@@ -5,12 +5,12 @@ import { SESSION_MAX_AGE } from "@/lib/constants";
 import type { AuthResponse } from "@/lib/api-types";
 
 export async function POST(req: NextRequest) {
-  const { email, password } = await req.json();
+  const { email, password, rememberMe } = await req.json();
 
   try {
     const data = await backendPublic<AuthResponse>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, rememberMe: Boolean(rememberMe) }),
     });
 
     const token = encodeSession({
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      maxAge: SESSION_MAX_AGE,
+      maxAge: typeof data.expiresIn === "number" && data.expiresIn > 0 ? data.expiresIn : SESSION_MAX_AGE,
     });
     return res;
   } catch (e) {

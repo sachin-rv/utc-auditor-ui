@@ -11,6 +11,7 @@ export interface AuthUser {
 
 export interface AuthResponse {
   accessToken: string;
+  expiresIn?: number;
   user: AuthUser;
 }
 
@@ -68,6 +69,14 @@ export interface ReportSummary {
   coveragePercent?: number;
   auditScore?: number;
   status?: "pass" | "fail" | "warning" | string;
+  statements?: number;
+  branches?: number;
+  functions?: number;
+  lines?: number;
+  findingsCount?: number;
+  completenessScore?: number;
+  cmsReadiness?: number;
+  qualityGrade?: string;
 }
 
 export interface ReportPipeline {

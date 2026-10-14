@@ -73,9 +73,11 @@ Paths below are relative to `{BACKEND_URL}/api`.
 | --- | --- | --- | --- | --- |
 | GET | `/auth/setup-status` | Tells the login page whether the first admin still needs to be created | — | `{ setupRequired }` |
 | POST | `/auth/setup` | Creates that first admin and returns a session token | `{ name, email, password }` | `{ accessToken, user }` |
-| POST | `/auth/login` | Validates email and password and returns a session token | `{ email, password }` | `{ accessToken, user }` |
+| POST | `/auth/login` | Validates email and password and returns a session token. Optional `rememberMe: true` uses the longer token lifetime | `{ email, password, rememberMe? }` | `{ accessToken, expiresIn, user }` |
 
 `user` fields: `id`, `email`, `name`, `role` (`admin` \| `client`), `clientId`, `isActive`.
+
+`expiresIn` is the token lifetime in seconds. The login route sets the `utc_session` cookie `maxAge` to that value. Without `rememberMe`, the backend default is 12 hours. With `rememberMe: true`, it is 30 days.
 
 ### Clients
 
@@ -92,12 +94,13 @@ Normalized client: `id`, `name`, `slug`, `contactEmail`, `status`, optional `pro
 | Method | Path | What it does | Request body |
 | --- | --- | --- | --- |
 | POST | `/users` | Creates an admin or client login. `clientId` is included only when the role is `client` and a client was selected | `{ email, password, name, role, clientId? }` |
+| POST | `/users/reset-password` | Admin sets a new password for an existing account | `{ email, password }` |
 
 ### Projects
 
 | Method | Path | What it does | Request body |
 | --- | --- | --- | --- |
-| GET | `/projects` | Lists the projects the signed-in user is allowed to see. Client users use this instead of the per-client list. The admin overview also uses it as the sample of projects to chart | — |
+| GET | `/projects` | Lists the projects the signed-in client user is allowed to see. Client users use this instead of the per-client list | — |
 | GET | `/clients/:clientId/projects` | Lists that client’s projects for the admin workspace sidebar, projects page, and project page | — |
 | GET | `/projects/:projectId` | Loads one project’s name, slug, and status for a report page. Failure is ignored and the page falls back to “Project” | — |
 | POST | `/clients/:clientId/projects` | Creates a project under the client. The response may include a one-time `apiKey.plainKey` | See below |
@@ -142,14 +145,18 @@ Response (`ApiKeyCreated`): `id`, `projectId`, `name`, `keyPrefix`, `plainKey`, 
 
 | Method | Path | What it does |
 | --- | --- | --- |
-| GET | `/projects/:projectId/reports?page=1&limit=20` | Loads the newest page of reports for one project: scores, status, coverage, and timestamps used by project cards, the admin charts, and report history |
-| GET | `/reports/:reportId` | Loads the full report, including `reportJson`, for the report page, the quality-details page, a raw-JSON fetch, or to fill in a list row that arrived without JSON |
+| GET | `/projects/:projectId/reports?page=1&limit=20` | Loads the newest page of reports for one project. Summary includes score, status, test counts, coverage breakdown (`statements`, `branches`, `functions`, `lines`), `findingsCount`, `completenessScore`, `cmsReadiness`, and `qualityGrade` |
+| GET | `/reports/:reportId` | Loads the full report, including `reportJson`, for the report page, the quality-details page, or a raw-JSON fetch. Also used when a list row has no usable summary |
 
-List response is normalized to `{ project, reports, total, page, limit }`. List items may include `summary`, `pipeline`, `generatedAt`, optional `reportJson`.
+List response is normalized to `{ project, reports, total, page, limit }`. List items include `summary` and `pipeline`. They do not include `reportJson`. When `summary` already has a score, test total, and coverage, the project board does not call `GET /reports/:id` for that row.
 
 Detail includes `reportJson` (or `payload` / `json` aliases) used for scores, findings, and the quality dashboard.
 
-Admin overview caps at **24** projects and **20** reports each, and does not download report JSON. Project boards download the full report only for the newest row, and skip that call when the row already has a summary score and a total test count.
+### Admin overview
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| GET | `/overview` | Active projects plus up to 50 recent runs each (`score`, `coverage`, `passed`, `generatedAt`). Admin only. Used by the home charts instead of one report-list call per project |
 
 ### Reports (write — not called by the UI)
 
@@ -174,7 +181,7 @@ A few rules apply on every authenticated page:
 - No session cookie, or an expired access token, redirects to `/login` before any backend call.
 - A backend `401` redirects to `/api/auth/expired`, which clears the cookie and sends the user to `/login?reason=session`.
 - The client workspace layout wraps every `/dashboard/client/...` page, so its calls run on those pages too. Next.js dedupes identical GETs in one render, so a path requested by both the layout and the page is sent once.
-- Report lists are `GET /projects/{projectId}/reports?page=1&limit=20`. On a project board, only the newest row that lacks both `reportJson` and a summary score is followed by `GET /reports/{reportId}`. Older rows stay as list metadata. The report page does not repeat that download for history; it already loaded the open report.
+- Report lists are `GET /projects/{projectId}/reports?page=1&limit=20`. A row is followed by `GET /reports/{reportId}` only when it has no `reportJson` and the summary is missing a score, test total, or coverage. The report page does not repeat that download for history; it already loaded the open report.
 
 ### `/`
 
@@ -196,7 +203,7 @@ Home does not call the API. It reads the session cookie and redirects to `/login
 | Browser `POST /api/auth/setup` | First-time form. Body `{ name, email, password }` |
 | Nest `POST /api/auth/setup` | Creates the admin and returns `{ accessToken, user }`. This app stores the token in the `utc_session` cookie |
 | Browser `POST /api/auth/login` | Normal sign-in. Body `{ email, password }` |
-| Nest `POST /api/auth/login` | Same cookie result for an existing admin or client user |
+| Nest `POST /api/auth/login` | Same cookie result for an existing admin or client user. Body may include `rememberMe`. Cookie `maxAge` follows `expiresIn` |
 
 ### `/dashboard`
 
@@ -207,8 +214,7 @@ The dashboard shell (header, theme, logout) does not call the API by itself. Log
 | Call | What it does |
 | --- | --- |
 | `GET /api/clients` | Client list: name, slug, contact, status |
-| `GET /api/projects` | All projects, used to count projects per client and to feed the charts |
-| `GET /api/projects/{projectId}/reports?page=1&limit=20` | Once per project, capped at 24 projects. Scores and coverage for the overview charts. Report detail is not fetched |
+| `GET /api/overview` | Active projects and recent report points for the charts |
 
 **Buttons on this page**
 
@@ -216,6 +222,7 @@ The dashboard shell (header, theme, logout) does not call the API by itself. Log
 | --- | --- | --- |
 | Create client | `POST /api/clients` | Creates a client, optionally with its first user |
 | Create user | `POST /api/users` | Creates an admin or client login |
+| Reset password | `POST /api/users/reset-password` | Sets a new password for an existing account |
 
 **Client user**
 
@@ -227,7 +234,7 @@ If it does not, the page stays here:
 | --- | --- |
 | `GET /api/projects` | Projects this user can see |
 | `GET /api/projects/{projectId}/reports?page=1&limit=20` | Once per project, for the project board |
-| `GET /api/reports/{reportId}` | Only the newest report, and only when that list row has no JSON and no summary score |
+| `GET /api/reports/{reportId}` | Only when a list row has no `reportJson` and its summary is missing a score, test total, or coverage |
 
 ### `/dashboard/client/{clientId}`
 
@@ -252,13 +259,14 @@ The page repeats the same client and project GETs. They are deduped with the lay
 | Call | What it does |
 | --- | --- |
 | `GET /api/projects/{projectId}/reports?page=1&limit=20` | Once per project. Scores, counts, and the report list on each card |
-| `GET /api/reports/{reportId}` | Only the newest report, and only when that list row has no JSON and no summary score |
+| `GET /api/reports/{reportId}` | Only when a list row has no `reportJson` and its summary is missing a score, test total, or coverage |
 
 **Buttons on this page (admin)**
 
 | Action | Call | What it does |
 | --- | --- | --- |
 | Create user | `POST /api/users` | Creates a user, defaulting the client to this workspace |
+| Reset password | `POST /api/users/reset-password` | Sets a new password for an existing account |
 | Create project | `POST /api/clients/{clientId}/projects` | Creates a project. The response may include a one-time API key |
 | Edit project | `PATCH /api/projects/{projectId}` | Updates name, URLs, description, status, or audit config |
 | Deactivate project | `DELETE /api/projects/{projectId}` | Deactivates the project |
@@ -273,7 +281,7 @@ The workspace layout runs first (same client and project-list calls as above).
 | --- | --- |
 | `GET /api/clients/{clientId}/projects` or `GET /api/projects` | Same list as the layout, deduped. The page picks the project that matches `{projectId}`. Unknown id is not-found |
 | `GET /api/projects/{projectId}/reports?page=1&limit=20` | Reports for this project only |
-| `GET /api/reports/{reportId}` | Only the newest report, and only when that list row has no JSON and no summary score |
+| `GET /api/reports/{reportId}` | Only when a list row has no `reportJson` and its summary is missing a score, test total, or coverage |
 
 Admin edit, deactivate, and API-key buttons on the project card use the same write calls as the client projects page.
 

@@ -133,6 +133,18 @@ export async function loadReportJsonAction(reportId: string) {
   }
 }
 
+export async function resetPasswordAction(input: { email: string; password: string }) {
+  try {
+    const data = await backendFetch<{ message: string; user: AuthUser }>("/users/reset-password", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    return { ok: true as const, data: data.user };
+  } catch (e) {
+    return fail(e, "Failed to reset password.");
+  }
+}
+
 export async function createUserAction(input: CreateUserInput) {
   try {
     const body: CreateUserInput = {

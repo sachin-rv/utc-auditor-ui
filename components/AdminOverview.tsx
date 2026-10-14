@@ -7,6 +7,7 @@ import { Building2, FolderKanban, Activity } from "lucide-react";
 import ClientListPanel, { type ClientRow } from "@/components/ClientListPanel";
 import CreateClientButton from "@/components/CreateClientButton";
 import CreateUserButton from "@/components/CreateUserButton";
+import ResetPasswordButton from "@/components/ResetPasswordButton";
 import { cardClass, chipActiveClass, chipClass, chipIdleClass } from "@/lib/ui";
 import type { OverviewReportPoint } from "@/lib/load-admin-overview";
 import type { ApiProject } from "@/lib/api-types";
@@ -161,6 +162,7 @@ export default function AdminOverview({
           </div>
           <CreateClientButton />
           <CreateUserButton clients={clients.map((c) => ({ id: c.id, name: c.name }))} />
+          <ResetPasswordButton />
         </div>
       </div>
 
