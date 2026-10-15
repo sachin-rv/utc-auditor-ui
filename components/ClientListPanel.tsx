@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import StatusPill from "@/components/StatusPill";
 import { listContainer, listItem } from "@/components/PageEnter";
 import { cardInteractiveClass, emptyStateClass, fieldCompactClass } from "@/lib/ui";
+
+const PAGE_SIZE = 8;
 
 export interface ClientRow {
   id: string;
@@ -24,6 +26,7 @@ export default function ClientListPanel({
   highlightId?: string | null;
 }) {
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const reduced = useReducedMotion();
 
   const filtered = useMemo(() => {
@@ -32,6 +35,20 @@ export default function ClientListPanel({
       .filter((c) => !q || c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [clients, query]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [clients, query]);
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const index = filtered.findIndex((c) => c.id === highlightId);
+    if (index >= 0) setPage(Math.floor(index / PAGE_SIZE) + 1);
+  }, [highlightId, filtered]);
+
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const current = Math.min(page, pages);
+  const slice = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
 
   return (
     <div>
@@ -67,7 +84,7 @@ export default function ClientListPanel({
           initial={reduced ? false : "hidden"}
           animate="show"
         >
-          {filtered.map((c) => (
+          {slice.map((c) => (
             <motion.div
               key={c.id}
               variants={reduced ? undefined : listItem}
@@ -103,6 +120,30 @@ export default function ClientListPanel({
             </motion.div>
           ))}
         </motion.div>
+      )}
+
+      {filtered.length > 0 && (
+        <div className="mt-4 flex items-center justify-end gap-2 text-[11px] font-mono text-mist">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={current === 1}
+            className="inline-flex items-center justify-center min-w-[72px] rounded-full border border-line bg-panel2/70 px-3 py-1.5 font-medium text-mist transition-all hover:border-signal-pass/40 hover:text-signal-pass hover:bg-signal-pass/5 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-line disabled:hover:text-mist disabled:hover:bg-panel2/70"
+          >
+            Prev
+          </button>
+          <span className="inline-flex min-w-[52px] justify-center rounded-full border border-signal-pass/35 bg-signal-pass/10 px-2.5 py-1.5 text-signal-pass">
+            {current}/{pages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(pages, p + 1))}
+            disabled={current === pages}
+            className="inline-flex items-center justify-center min-w-[72px] rounded-full border border-line bg-panel2/70 px-3 py-1.5 font-medium text-mist transition-all hover:border-signal-pass/40 hover:text-signal-pass hover:bg-signal-pass/5 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-line disabled:hover:text-mist disabled:hover:bg-panel2/70"
+          >
+            Next
+          </button>
+        </div>
       )}
     </div>
   );
