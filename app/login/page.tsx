@@ -69,7 +69,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8">
-      <div className="relative w-full max-w-5xl bg-panel rounded-2xl md:rounded-3xl border border-line shadow-xl shadow-black/5 dark:shadow-black/40 overflow-hidden flex flex-col md:flex-row md:min-h-[640px]">
+      <div className="relative w-full max-w-5xl bg-panel rounded-2xl md:rounded-3xl border border-line shadow-[0_0_48px_rgba(13,143,127,0.42)] dark:shadow-[0_0_64px_rgba(13,143,127,0.55)] overflow-hidden flex flex-col md:flex-row md:min-h-[640px]">
         {loading && (
           <div className="absolute inset-0 z-20 bg-panel/80 backdrop-blur-sm flex items-center justify-center">
             <PageLoader
