@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { useTheme } from "@/lib/useTheme";
 import { THEME_COLORS } from "@/lib/theme-colors";
-import { cardClass, chipActiveClass, chipClass, chipIdleClass } from "@/lib/ui";
+import { cardClass, chipActiveClass, chipClass, chipIdleClass, rowHoverClass } from "@/lib/ui";
 
 export type OverviewChartTab = "projects" | "scores";
 export type OverviewTimeRange = "all" | "week" | "month" | "year";
@@ -191,10 +191,10 @@ export default function AdminOverviewCharts({
                   <button
                     type="button"
                     onClick={() => onSelect(c.id)}
-                    className={`w-full flex items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors ${
+                    className={`w-full flex items-center gap-3 rounded-xl px-2 py-2 text-left text-chalk ${
                       selectedId === c.id
-                        ? "bg-signal-pass/10 text-signal-pass"
-                        : "hover:bg-panel2 hover:text-signal-pass text-chalk"
+                        ? "bg-signal-pass/10 shadow-[inset_3px_0_0_rgba(13,143,127,0.9)] dark:shadow-[inset_3px_0_0_rgba(62,213,152,0.95)]"
+                        : rowHoverClass
                     }`}
                   >
                     <span

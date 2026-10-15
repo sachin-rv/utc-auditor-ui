@@ -60,7 +60,7 @@ export default function ProjectCard({
   const reduced = useReducedMotion();
 
   return (
-    <section id={`project-card-${project.id}`} className={`${cardClass} overflow-hidden`}>
+    <section id={`project-card-${project.id}`} className={`${cardClass} overflow-hidden hover:border-signal-pass/40 hover:shadow-[0_0_32px_rgba(13,143,127,0.18)] dark:hover:shadow-[0_0_40px_rgba(62,213,152,0.24)] transition-[box-shadow,border-color] duration-200`}>
       <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-panel2/40 gap-4">
         <div className="text-left min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">

@@ -8,7 +8,7 @@ import ClientListPanel, { type ClientRow } from "@/components/ClientListPanel";
 import CreateClientButton from "@/components/CreateClientButton";
 import CreateUserButton from "@/components/CreateUserButton";
 import ResetPasswordButton from "@/components/ResetPasswordButton";
-import { cardClass, chipActiveClass, chipClass, chipIdleClass } from "@/lib/ui";
+import { cardClass, cardInteractiveClass, chipActiveClass, chipClass, chipIdleClass } from "@/lib/ui";
 import type { OverviewReportPoint } from "@/lib/load-admin-overview";
 import type { ApiProject } from "@/lib/api-types";
 import type { OverviewChartTab, OverviewTimeRange } from "@/components/AdminOverviewCharts";
@@ -255,8 +255,8 @@ function KpiCard({
     <button
       type="button"
       onClick={onClick}
-      className={`${cardClass} p-5 text-left hover:border-signal-pass/40 transition ${
-        active ? "border-signal-pass/50 ring-1 ring-signal-pass/20" : ""
+      className={`${cardInteractiveClass} p-5 text-left ${
+        active ? "border-signal-pass/50 ring-1 ring-signal-pass/25 bg-signal-pass/[0.06]" : ""
       }`}
     >
       <div className="text-xs uppercase tracking-widest text-mist mb-3 flex items-center gap-2">

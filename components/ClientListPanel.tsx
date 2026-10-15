@@ -81,7 +81,7 @@ export default function ClientListPanel({
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <div className="h-11 w-11 rounded-xl bg-panel2 border border-line flex items-center justify-center font-display font-bold text-mist group-hover:text-signal-pass group-hover:border-signal-pass/30 group-hover:scale-105 transition-all">
+                  <div className="h-11 w-11 rounded-xl bg-panel2 border border-line flex items-center justify-center font-display font-bold text-mist group-hover:text-signal-pass group-hover:border-signal-pass/40 group-hover:bg-signal-pass/10 group-hover:scale-105 transition-all">
                     {c.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div>

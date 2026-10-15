@@ -14,7 +14,7 @@ import type {
 } from "@/lib/user-report";
 import { countTone, gradeTone, scoreTone } from "@/lib/user-report";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { btnGhostClass, chipClass, chipIdleClass, fieldCompactClass, fieldInlineClass } from "@/lib/ui";
+import { btnGhostClass, cardInteractiveClass, chipClass, chipIdleClass, fieldCompactClass, fieldInlineClass, rowHoverClass } from "@/lib/ui";
 import { listContainer, listItem } from "@/components/PageEnter";
 import Modal from "@/components/Modal";
 import CopyTextButton from "@/components/CopyTextButton";
@@ -195,7 +195,7 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
             variants={reduced ? undefined : listItem}
             whileHover={reduced ? undefined : { y: -3 }}
             whileTap={reduced ? undefined : { scale: 0.98 }}
-            className={`text-left border ${TONE_BORDER[m.tone]} bg-panel rounded-2xl p-3 shadow-xl shadow-black/5 dark:shadow-black/40 hover:border-signal-pass/40 transition`}
+            className={`text-left border ${TONE_BORDER[m.tone]} bg-panel rounded-2xl p-3 shadow-xl shadow-black/5 dark:shadow-black/40 hover:border-signal-pass/50 hover:bg-signal-pass/[0.04] hover:shadow-[0_0_28px_rgba(13,143,127,0.22)] dark:hover:shadow-[0_0_36px_rgba(62,213,152,0.28)] transition-[box-shadow,border-color,background-color] duration-200`}
           >
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="text-[10px] uppercase tracking-widest text-mist leading-tight">{m.label}</div>
@@ -229,7 +229,7 @@ export default function AuditDetailsDashboard({ data }: { data: UserReportView }
                 onClick={() => openStrategy(s)}
                 variants={reduced ? undefined : listItem}
                 whileHover={reduced ? undefined : { y: -2 }}
-                className="text-left border border-line bg-panel rounded-2xl p-4 shadow-xl shadow-black/5 dark:shadow-black/40 hover:border-signal-pass/40 transition"
+                className={`${cardInteractiveClass} text-left p-4`}
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="text-sm font-medium truncate">{s.title}</div>
@@ -507,7 +507,7 @@ function StrategyDetail({
               key={`${issue.file}-${issue.line}-${i}`}
               type="button"
               onClick={() => onOpenIssue(issue)}
-              className="w-full text-left px-4 py-3 hover:bg-panel2/60 transition-colors"
+              className={`w-full text-left px-4 py-3 ${rowHoverClass}`}
             >
               <div className="flex items-center gap-2 mb-1">
                 <SeverityChip severity={issue.severity} />
@@ -818,7 +818,7 @@ function Accordion({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-panel2/50 transition-colors text-left"
+        className={`w-full px-5 py-3.5 flex items-center justify-between gap-3 text-left ${rowHoverClass}`}
       >
         <div>
           <div className="text-sm font-medium">{title}</div>
@@ -1002,7 +1002,7 @@ function IssuesTable({
             {slice.map((i, idx) => (
               <tr
                 key={`${i.file}-${i.line}-${idx}`}
-                className="cursor-pointer hover:bg-panel2/60 transition-colors"
+                className={`cursor-pointer ${rowHoverClass}`}
                 onClick={() => onSelect(i)}
               >
                 <td className="py-2.5 pr-3 font-mono text-mist truncate" title={i.file}>
@@ -1088,7 +1088,7 @@ function TestFilesTable({
             {slice.map((f) => (
               <tr
                 key={f.file}
-                className="cursor-pointer hover:bg-panel2/60 transition-colors"
+                className={`cursor-pointer ${rowHoverClass}`}
                 onClick={() => onSelect(f)}
               >
                 <td className="py-2.5 pr-3 font-mono truncate" title={f.file}>
@@ -1194,7 +1194,7 @@ function FailedTable({
             key={`${c.file}-${c.name}-${i}`}
             type="button"
             onClick={() => onSelect(c)}
-            className="w-full text-left py-2.5 hover:bg-panel2/60 -mx-2 px-2 rounded-xl transition-colors"
+            className={`w-full text-left py-2.5 -mx-2 px-2 rounded-xl ${rowHoverClass}`}
           >
             <div className="flex items-center gap-2">
               <Chip tone={c.status === "failed" ? "fail" : "warn"}>{c.status}</Chip>
@@ -1324,7 +1324,7 @@ function RecommendationsList({
                 key={item.source}
                 type="button"
                 onClick={() => onSelect(item)}
-                className="w-full text-left border border-line rounded-2xl p-3 hover:border-signal-pass/40 hover:bg-panel2/40 transition-colors"
+                className={`${cardInteractiveClass} w-full text-left p-3`}
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-xs truncate">{item.sourceShort}</span>
@@ -1412,7 +1412,7 @@ function CoverageTable({
             {slice.map((f) => (
               <tr
                 key={f.file}
-                className="cursor-pointer hover:bg-panel2/60 transition-colors"
+                className={`cursor-pointer ${rowHoverClass}`}
                 onClick={() => onSelect(f)}
               >
                 <td className="py-2 pr-3 font-mono truncate" title={f.file}>

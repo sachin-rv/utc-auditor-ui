@@ -9,6 +9,7 @@ import { humanizeFileLabel } from "@/lib/business-copy";
 import {
   btnGhostClass,
   cardClass,
+  rowHoverClass,
   chipActiveClass,
   chipClass,
   chipIdleClass,
@@ -143,7 +144,7 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
               >
                 <button
                   onClick={() => toggleCollapsed(category)}
-                  className="w-full px-5 py-2.5 bg-panel2/40 border-b border-line text-sm font-medium flex items-center justify-between hover:bg-panel2/70 transition-colors"
+                  className={`w-full px-5 py-2.5 bg-panel2/40 border-b border-line text-sm font-medium flex items-center justify-between ${rowHoverClass}`}
                 >
                   <span>
                     {category} <span className="text-mist font-mono text-xs">({categoryFindings.length})</span>
@@ -168,7 +169,7 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
                         id={elementId("finding-row", f.id)}
                         type="button"
                         onClick={() => setSelected(f)}
-                        className="w-full text-left px-5 py-3 flex items-start justify-between gap-4 hover:bg-panel2/40 transition-colors"
+                        className={`w-full text-left px-5 py-3 flex items-start justify-between gap-4 ${rowHoverClass}`}
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 min-w-0">

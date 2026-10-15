@@ -80,9 +80,9 @@ export default function ClientWorkspaceShell({
             {isAdmin && (
               <Link
                 href="/dashboard"
-                className="hidden md:flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-mist hover:text-signal-pass hover:bg-panel2 mb-1"
+                className="group hidden md:flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-chalk mb-1 hover:bg-signal-pass/10 hover:shadow-[0_0_18px_rgba(13,143,127,0.16)] dark:hover:shadow-[0_0_20px_rgba(62,213,152,0.2)] transition-[background-color,box-shadow] duration-200"
               >
-                <Users size={16} />
+                <Users size={16} className="text-mist group-hover:text-signal-pass transition-colors" />
                 All clients
               </Link>
             )}
@@ -134,13 +134,13 @@ function NavItem({
   return (
     <Link
       href={href}
-      className={`shrink-0 md:w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-colors ${
+      className={`group shrink-0 md:w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-chalk transition-[background-color,box-shadow,color] duration-200 ${
         active
-          ? "bg-signal-pass/10 text-signal-pass"
-          : "text-chalk hover:text-signal-pass hover:bg-panel2"
+          ? "bg-signal-pass/10 shadow-[inset_3px_0_0_rgba(13,143,127,0.9)] dark:shadow-[inset_3px_0_0_rgba(62,213,152,0.95)]"
+          : "hover:bg-signal-pass/10 hover:shadow-[0_0_18px_rgba(13,143,127,0.16)] dark:hover:shadow-[0_0_20px_rgba(62,213,152,0.2)]"
       }`}
     >
-      <span className="shrink-0">{icon}</span>
+      <span className={`shrink-0 ${active ? "text-signal-pass" : "text-mist group-hover:text-signal-pass transition-colors"}`}>{icon}</span>
       <span className="min-w-0">
         <span className="block truncate">{label}</span>
         {hint ? <span className="hidden md:block text-[10px] font-mono text-mist truncate">{hint}</span> : null}

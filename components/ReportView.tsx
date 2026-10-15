@@ -10,7 +10,7 @@ import type { ReportRow } from "@/components/ReportHistoryList";
 import ScoreChangeCard from "@/components/ScoreChangeCard";
 import type { CoverageMetrics, Finding } from "@/lib/types";
 import type { ReportPipeline } from "@/lib/api-types";
-import { cardClass, cardInteractiveClass, chipActiveClass, chipClass, chipIdleClass } from "@/lib/ui";
+import { cardClass, cardInteractiveClass, chipActiveClass, chipClass, chipIdleClass, rowHoverClass } from "@/lib/ui";
 import { clientProjectPath, clientReportDetailsPath } from "@/lib/client-routes";
 import { averageScore, gradeLabel } from "@/lib/display-score";
 import { explainScoreChange, snapshotFromRow } from "@/lib/score-change";
@@ -282,7 +282,7 @@ export default function ReportView({
               <button
                 type="button"
                 onClick={toggleRunDetails}
-                className="w-full px-4 py-2.5 text-left hover:bg-panel2/40 transition-colors flex items-center justify-between"
+                className={`w-full px-4 py-2.5 text-left flex items-center justify-between ${rowHoverClass}`}
               >
                 <span className="text-xs uppercase tracking-widest text-mist">Run details</span>
                 <svg

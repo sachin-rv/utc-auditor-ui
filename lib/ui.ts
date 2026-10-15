@@ -11,7 +11,10 @@ export const cardClass =
   "border border-line bg-panel rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/40";
 
 export const cardInteractiveClass =
-  "border border-line bg-panel rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/40 hover:border-signal-pass/40 hover:shadow-signal-pass/10 transition-shadow";
+  "border border-line bg-panel rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/40 hover:border-signal-pass/45 hover:bg-signal-pass/[0.04] hover:shadow-[0_0_28px_rgba(13,143,127,0.22)] dark:hover:shadow-[0_0_36px_rgba(62,213,152,0.28)] transition-[box-shadow,border-color,background-color] duration-200";
+
+export const rowHoverClass =
+  "hover:bg-signal-pass/[0.08] dark:hover:bg-signal-pass/[0.14] transition-colors duration-200";
 
 export const btnPrimaryClass =
   "inline-flex items-center justify-center font-semibold text-sm rounded-full px-4 py-2 bg-chalk dark:bg-signal-pass text-panel dark:text-onaccent hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed";

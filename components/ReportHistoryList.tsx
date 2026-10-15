@@ -160,17 +160,19 @@ export default function ReportHistoryList({
               <Link
                 key={r.id}
                 href={clientReportPath(clientId, r.id)}
-                className="flex items-center justify-between py-3 group hover:bg-panel2/40 -mx-2 px-3 rounded-xl transition-colors"
+                className="group flex items-center justify-between py-3 -mx-2 px-3 rounded-xl transition-[background-color,box-shadow,color] duration-200 hover:bg-signal-pass/[0.08] dark:hover:bg-signal-pass/[0.14] hover:shadow-[inset_3px_0_0_rgba(13,143,127,0.9)] dark:hover:shadow-[inset_3px_0_0_rgba(62,213,152,0.95)]"
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <span className="font-mono text-xs text-mist w-32 shrink-0">{fmtDateTime(r.timestamp)}</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full border border-line text-mist font-mono uppercase tracking-wider truncate">
+                  <span className="font-mono text-xs text-mist w-32 shrink-0 transition-colors group-hover:text-signal-pass">
+                    {fmtDateTime(r.timestamp)}
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full border border-line text-mist font-mono uppercase tracking-wider truncate transition-colors group-hover:border-signal-pass/40 group-hover:text-signal-pass">
                     {r.trigger.replace(/_/g, " ")}
                   </span>
-                  {r.status && <StatusPill status={r.status} />}
+                  {r.status && <StatusPill status={r.status} className="group-hover:text-signal-pass" />}
                 </div>
                 <div className="flex items-center gap-6 shrink-0">
-                  <span className="font-mono text-xs text-mist hidden sm:inline">
+                  <span className="font-mono text-xs text-mist hidden sm:inline transition-colors group-hover:text-signal-pass">
                     {r.passed}/{r.total} passed
                     {r.findingsCount ? ` · ${r.findingsCount} findings` : ""}
                     {r.coveragePercent != null ? ` · ${Math.round(r.coveragePercent)}% cov` : ""}
@@ -178,7 +180,9 @@ export default function ReportHistoryList({
                   <span className={`font-mono text-sm font-bold w-8 text-right ${scoreColor(r.overallScore)}`}>
                     {r.overallScore}
                   </span>
-                  <span className="text-mist group-hover:text-signal-pass transition-colors">→</span>
+                  <span className="text-mist group-hover:text-signal-pass group-hover:translate-x-0.5 inline-block transition-all">
+                    →
+                  </span>
                 </div>
               </Link>
             ))}
